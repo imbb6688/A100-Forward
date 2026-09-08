@@ -1,0 +1,61 @@
+name: A100 Forward Daily
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '35 15 * * 1-5'
+      timezone: 'Asia/Shanghai'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: a100-forward
+  cancel-in-progress: false
+
+jobs:
+  run-forward:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    environment:
+      name: github-pages
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Prepare runtime
+        run: |
+          sudo mkdir -p /mnt/data/A100_complete_results /mnt/data/A100_v5_results /mnt/data/A100_v6_results /mnt/data/A100_v7_results /mnt/data/forward
+          sudo chown -R $USER:$USER /mnt/data
+          cp scripts/*.py /mnt/data/
+      - name: Download and validate HiThink full market data
+        env:
+          HITHINK_FINANCE_API_KEY: ${{ secrets.HITHINK_FINANCE_API_KEY }}
+        run: python scripts/download_hithink.py
+      - name: Build frozen A100 feature chain
+        run: |
+          cd /mnt/data
+          python a100_canonical_prep.py
+          python a100_v5_pit_proxy.py
+          python a100_v6_feature_prep_forward.py
+          python a100_v6_train_score_forward.py
+          python a100_v7_forward_ranker.py
+          python a100_forward_live.py
+      - name: Copy sanitized outputs to Pages
+        run: |
+          mkdir -p site
+          cp /mnt/data/forward/index.html site/index.html
+          cp /mnt/data/forward/latest_signal.json site/latest_signal.json
+          cp /mnt/data/forward/latest_candidates.csv site/latest_candidates.csv
+          cp /mnt/data/hithink_manifest.json site/data_manifest.json
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: site
+      - uses: actions/deploy-pages@v4
