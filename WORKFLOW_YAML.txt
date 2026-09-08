@@ -43,13 +43,11 @@ jobs:
           sudo mkdir -p /mnt/data/A100_complete_results /mnt/data/A100_v5_results /mnt/data/A100_v6_results /mnt/data/A100_v7_results /mnt/data/forward
           sudo chown -R $USER:$USER /mnt/data
           cp -f scripts/*.py /mnt/data/
+          python /mnt/data/preflight.py
           echo "Repository commit: $GITHUB_SHA"
-          echo "Runtime parquet reader:"
-          grep -n "pyarrow.parquet" /mnt/data/parquet_minread.py
-          if grep -q "read_footer" /mnt/data/parquet_minread.py; then
-            echo "::error::OLD parquet_minread.py detected"
-            exit 1
-          fi
+          python scripts/preflight.py
+          echo "Repository commit: $GITHUB_SHA"
+          grep -n "pyarrow.parquet" scripts/a100_io.py
 
       - name: Download and validate HiThink full market data
         env:
@@ -74,6 +72,10 @@ jobs:
           required={"ts_code","trade_date","open","high","low","close","pre_close","volume","amount"}
           missing=required-set(pf.schema.names)
           assert not missing, f"missing columns: {sorted(missing)}"
+          import numpy as np, pyarrow.parquet as pq2
+          d=pq2.read_table(p,columns=["trade_date"]).column(0).combine_chunks().to_numpy(zero_copy_only=False)
+          assert np.issubdtype(d.dtype,np.integer), f"trade_date dtype must be integer us, got {d.dtype}"
+          assert int(d.max())>1_700_000_000_000_000, "trade_date not microseconds"
           PY
 
       - name: Build frozen A100 feature chain
