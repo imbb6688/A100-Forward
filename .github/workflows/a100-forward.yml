@@ -7,7 +7,7 @@ on:
       timezone: 'Asia/Shanghai'
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -22,22 +22,32 @@ jobs:
     environment:
       name: github-pages
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-python@v5
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: 'pip'
+
       - name: Install dependencies
         run: pip install -r requirements.txt
-      - name: Prepare runtime
+
+      - name: Prepare runtime and restore account state
         run: |
-          sudo mkdir -p /mnt/data/A100_complete_results /mnt/data/A100_v5_results /mnt/data/A100_v6_results /mnt/data/A100_v7_results /mnt/data/forward
+          sudo mkdir -p /mnt/data/A100_complete_results /mnt/data/A100_v5_results /mnt/data/A100_v6_results /mnt/data/A100_v7_results /mnt/data/forward /mnt/data/state
           sudo chown -R $USER:$USER /mnt/data
           cp scripts/*.py /mnt/data/
+          if [ -d state ]; then
+            find state -maxdepth 1 -type f -print -exec cp -f {} /mnt/data/state/ \;
+          fi
+
       - name: Download and validate HiThink full market data
         env:
           HITHINK_FINANCE_API_KEY: ${{ secrets.HITHINK_FINANCE_API_KEY }}
         run: python scripts/download_hithink.py
+
       - name: Build frozen A100 feature chain
         run: |
           cd /mnt/data
@@ -47,6 +57,33 @@ jobs:
           python a100_v6_train_score_forward.py
           python a100_v7_forward_ranker.py
           python a100_forward_live.py
+
+      - name: Update Forward Account V1
+        run: |
+          cd /mnt/data
+          python a100_account_v1.py
+          test -s /mnt/data/state/account_state.json
+          test -s /mnt/data/state/trade_log.csv
+          test -s /mnt/data/state/equity_curve.csv
+          test -s /mnt/data/forward/account.json
+          test -s /mnt/data/forward/account.html
+
+      - name: Persist paper-account state to repository
+        run: |
+          mkdir -p state
+          cp -f /mnt/data/state/account_state.json state/account_state.json
+          cp -f /mnt/data/state/trade_log.csv state/trade_log.csv
+          cp -f /mnt/data/state/equity_curve.csv state/equity_curve.csv
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add state/account_state.json state/trade_log.csv state/equity_curve.csv
+          if git diff --cached --quiet; then
+            echo "No account-state changes to commit."
+          else
+            git commit -m "chore: update A100 Forward paper account [skip ci]"
+            git push origin HEAD:main
+          fi
+
       - name: Copy sanitized outputs to Pages
         run: |
           mkdir -p site
@@ -54,8 +91,18 @@ jobs:
           cp /mnt/data/forward/latest_signal.json site/latest_signal.json
           cp /mnt/data/forward/latest_candidates.csv site/latest_candidates.csv
           cp /mnt/data/hithink_manifest.json site/data_manifest.json
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v4
+          cp /mnt/data/forward/account.html site/account.html
+          cp /mnt/data/forward/account.json site/account.json
+          cp /mnt/data/forward/account_trades.csv site/account_trades.csv
+          cp /mnt/data/forward/account_equity.csv site/account_equity.csv
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
         with:
           path: site
-      - uses: actions/deploy-pages@v4
+
+      - name: Deploy Pages
+        uses: actions/deploy-pages@v4
