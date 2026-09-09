@@ -1,0 +1,1 @@
+trade_id,symbol,cluster,signal_date,entry_date,exit_date,shares,entry_raw,entry_exec,exit_raw,exit_exec,atr,stop,target,buy_commission,sell_commission,stamp_duty,pnl,return_pct,r_multiple,exit_reason,holding_days,v7_rank_score,v6_score,industry_score,market_score
