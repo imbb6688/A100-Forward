@@ -18,7 +18,7 @@ concurrency:
 jobs:
   run-forward:
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 240
     environment:
       name: github-pages
 
