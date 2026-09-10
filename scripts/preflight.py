@@ -2,8 +2,18 @@ from pathlib import Path
 import ast
 
 ROOT=Path(__file__).resolve().parent
-required=["download_hithink.py","a100_io.py","a100_canonical_prep.py","a100_v5_pit_proxy.py",
-"a100_v6_feature_prep_forward.py","a100_v6_train_score_forward.py","a100_v7_forward_ranker.py","a100_forward_live.py"]
+required=[
+    "download_hithink.py",
+    "a100_io.py",
+    "a100_canonical_prep.py",
+    "a100_v5_pit_proxy.py",
+    "a100_v6_feature_prep_forward.py",
+    "a100_v6_train_score_forward.py",
+    "a100_v7_forward_ranker.py",
+    "a100_forward_live.py",
+    "a100_account_v1.py",
+    "validate_publish.py",
+]
 missing=[x for x in required if not (ROOT/x).exists()]
 if missing: raise SystemExit(f"missing scripts: {missing}")
 for n in required:
