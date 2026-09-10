@@ -79,12 +79,32 @@ pq.write_table(pa.Table.from_pandas(df,preserve_index=False),daily,compression="
 
 latest_us=int(df["trade_date"].max())
 latest=pd.to_datetime(latest_us,unit="us").strftime("%Y-%m-%d")
-nlatest=int((df["trade_date"]==latest_us).sum())
+counts=df.groupby("trade_date",sort=True).size()
+nlatest=int(counts.loc[latest_us])
+
+prior=counts[counts.index<latest_us].tail(20)
+recent_median=float(prior.median()) if len(prior) else float(nlatest)
+completeness_ratio=float(nlatest/recent_median) if recent_median>0 else 0.0
+
+absolute_floor_ok=bool(nlatest>=4500)
+relative_completeness_ok=bool(completeness_ratio>=0.97)
+full_market=bool(absolute_floor_ok and relative_completeness_ok)
+
 manifest={
-    "schema_version":"A100-HITHINK-NORMALIZED-v1",
+    "schema_version":"A100-HITHINK-NORMALIZED-v2",
+    "source":"HiThink Financial-API full-market daily-k + adjustment events",
     "latest_trade_date":latest,
     "latest_trade_date_us":latest_us,
     "latest_rows":nlatest,
+    "recent_20_session_median_rows":recent_median,
+    "completeness_ratio":completeness_ratio,
+    "absolute_floor_rows":4500,
+    "minimum_completeness_ratio":0.97,
+    "absolute_floor_ok":absolute_floor_ok,
+    "relative_completeness_ok":relative_completeness_ok,
+    "full_market":full_market,
+    "complete":full_market,
+    "data_valid":full_market,
     "rows":int(len(df)),
     "symbols":int(df["ts_code"].nunique()),
     "raw_daily_bytes":int(rb),
@@ -94,4 +114,10 @@ manifest={
 }
 (OUT/"hithink_manifest.json").write_text(json.dumps(manifest,ensure_ascii=False,indent=2),encoding="utf-8")
 print(json.dumps(manifest,ensure_ascii=False,indent=2),flush=True)
-if nlatest<4500: raise SystemExit(f"FAIL CLOSED: latest trading day has only {nlatest} rows (<4500)")
+
+if not full_market:
+    raise SystemExit(
+        "FAIL CLOSED: incomplete full-market session: "
+        f"latest_rows={nlatest}, recent_median={recent_median:.1f}, "
+        f"completeness_ratio={completeness_ratio:.4f}"
+    )
