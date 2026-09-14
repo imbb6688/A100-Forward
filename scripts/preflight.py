@@ -3,6 +3,7 @@ import ast
 
 ROOT=Path(__file__).resolve().parent
 required=[
+    "a100_runtime_checks.py",
     "download_hithink.py",
     "a100_io.py",
     "a100_canonical_prep.py",
@@ -29,4 +30,13 @@ for n in ["a100_canonical_prep.py","a100_v5_pit_proxy.py","a100_v6_feature_prep_
         raise SystemExit(f"{n}: audited a100_io import missing")
     if "parquet_minread" in imports:
         raise SystemExit(f"{n}: stale parquet_minread import")
+downloader=ast.parse((ROOT/'download_hithink.py').read_text(encoding='utf-8'))
+definitions={n.name for n in downloader.body if isinstance(n,ast.FunctionDef)}
+if not {'main','fetch','presigned','validate_parquet'} <= definitions:
+    raise SystemExit('download_hithink.py: incomplete downloader')
+entrypoints=[n for n in downloader.body if isinstance(n,ast.If)
+             and ast.dump(n.test)==ast.dump(ast.parse('__name__ == "__main__"',mode='eval').body)]
+if not any(isinstance(n,ast.Call) and isinstance(n.func,ast.Name) and n.func.id=='main'
+           for entry in entrypoints for n in ast.walk(entry)):
+    raise SystemExit('download_hithink.py: main entrypoint missing')
 print("A100 PRE-FLIGHT OK")

@@ -2,6 +2,7 @@ import json, math
 from pathlib import Path
 import numpy as np
 import pandas as pd
+from a100_runtime_checks import expected_session, require_session, require_account_continuity
 
 STATE_DIR=Path('/mnt/data/state'); FORWARD_DIR=Path('/mnt/data/forward')
 STATE_DIR.mkdir(parents=True,exist_ok=True); FORWARD_DIR.mkdir(parents=True,exist_ok=True)
@@ -60,6 +61,10 @@ def mark_equity(s,positions,marks):
     mv=sum(int(p['shares'])*float(marks.get(p['symbol'],p.get('last_mark',p['entry_raw']))) for p in positions)
     return float(s['cash'])+mv,mv
 
+for required in (STATE_FILE, TRADES_FILE, EQUITY_FILE):
+    if not required.is_file() or required.stat().st_size == 0:
+        raise SystemExit(f'FAIL CLOSED: authoritative account file missing: {required.name}')
+
 v5=np.load('/mnt/data/A100_v5_results/A100_V5_context.npz',allow_pickle=False)
 f=np.load('/mnt/data/A100_v6_results/A100_V6_features.npz',allow_pickle=False)
 v6=np.load('/mnt/data/A100_v6_results/A100_V6_score_context.npz',allow_pickle=False)['score'].astype(float)
@@ -67,6 +72,7 @@ rk=np.load('/mnt/data/A100_v7_results/A100_V7_rank_context.npz',allow_pickle=Fal
 starts=v5['starts'].astype(int); ends=v5['ends'].astype(int); op=v5['op'].astype(float); hi=v5['hi'].astype(float); lo=v5['lo'].astype(float); cl=v5['cl'].astype(float); atr=v5['atr20'].astype(float); dc=v5['date_code'].astype(int); ud=v5['unique_dates'].astype(np.int64); symbols=v5['symbols']; clusters=v5['cluster'].astype(int)
 sig=f['sig'].astype(int); sid_sig=f['sid'].astype(int); dc_sig=f['date_code_sig'].astype(int); ranks=rk['rank_score'].astype(float); broad=rk['broad'].astype(bool)
 latest=len(ud)-1; latest_date=dstr(ud,latest)
+require_session(latest_date, expected_session())
 manifest=json.loads(Path('/mnt/data/hithink_manifest.json').read_text(encoding='utf-8'))
 if manifest.get('latest_trade_date')!=latest_date:
     raise SystemExit('FAIL CLOSED: account date differs from HiThink manifest')
@@ -74,6 +80,7 @@ if not all(bool(manifest.get(k)) for k in ('full_market','complete','data_valid'
     raise SystemExit('FAIL CLOSED: incomplete full-market session')
 
 s=load_state(); trades=load_csv(TRADES_FILE,TRADE_COLS); eqcurve=load_csv(EQUITY_FILE,EQ_COLS); actions=[]
+require_account_continuity(s, [dstr(ud, t) for t in range(len(ud))])
 start_us=pd.Timestamp(START).value//1000; start_code=int(np.searchsorted(ud,start_us))
 if start_code>=len(ud): raise SystemExit('Forward start is after available data')
 last=s.get('last_processed_date_code'); first=start_code if last is None else int(last)+1
@@ -144,7 +151,7 @@ for t in range(first,latest+1):
         for p in s['positions']: cc[int(p['cluster'])]=cc.get(int(p['cluster']),0)+1
         for i in ix:
             if len(selected)>=2 or len(s['positions'])+len(selected)>=MAX_POS: break
-            raw=int(sig[i]); sid=int(sid_sig[i]); sym=str(symbols[sid]); clu=int(clusters[raw]); aa=float(atr[raw])
+            raw=int(sig[i]); sid=int(sid_sig[i]); sym=str(symbols[sid]); clu=int(clusters[t,sid]); aa=float(atr[raw])
             if sym in held or clu<0 or cc.get(clu,0)>=MAX_MAINLINE or not(np.isfinite(aa) and aa>0): continue
             order={'symbol':sym,'sid':sid,'cluster':clu,'signal_date_code':t,'signal_date':ds,'atr':aa,'risk_multiplier':rmclose,'v7_rank_score':float(ranks[i]),'v6_score':float(v6[i]),'industry_score':float(f['industry'][i]),'market_score':float(f['market'][i])}
             selected.append(order); held.add(sym); cc[clu]=cc.get(clu,0)+1

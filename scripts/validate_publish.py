@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from a100_runtime_checks import expected_session, require_session
 
 MANIFEST=Path('/mnt/data/hithink_manifest.json')
 SIGNAL=Path('/mnt/data/forward/latest_signal.json')
@@ -28,6 +29,7 @@ if not bool(account.get('data_valid')):
 manifest_date=str(manifest.get('latest_trade_date'))
 signal_date=str(signal.get('latest_trade_date'))
 account_date=str(account.get('as_of'))
+require_session(manifest_date, expected_session())
 
 if len({manifest_date,signal_date,account_date})!=1:
     fail(
