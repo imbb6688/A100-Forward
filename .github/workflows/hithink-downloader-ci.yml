@@ -30,3 +30,4 @@ jobs:
           grep -q 'if __name__ == "__main__"' scripts/download_hithink.py
           grep -q 'A100_2020_2026_raw.parquet' scripts/download_hithink.py
           grep -q 'hithink_manifest.json' scripts/download_hithink.py
+          grep -q 'A100-HITHINK-NORMALIZED-v3' scripts/download_hithink.py
