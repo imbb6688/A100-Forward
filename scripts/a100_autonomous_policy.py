@@ -54,8 +54,10 @@ def classify_market_regime(signal: Dict[str, Any], account: Dict[str, Any], poli
         regime = "RISK_OFF"
         exposure = 0.0
     elif not market_gate or candidate_count < policy.min_candidate_count:
+        # A closed market gate or an insufficient candidate set may be a healthy
+        # no-trade state. Keep reporting DEFENSIVE, but never allocate new risk.
         regime = "DEFENSIVE"
-        exposure = 0.25
+        exposure = 0.0
     elif drawdown <= policy.soft_drawdown or loss_streak >= policy.soft_loss_streak:
         regime = "CAUTIOUS"
         exposure = 0.35
@@ -103,17 +105,28 @@ def validate_candidate(candidate: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+def _account_positions(account: Dict[str, Any]) -> List[Dict[str, Any]]:
+    positions = account.get("open_positions")
+    if positions is None:
+        positions = account.get("positions", [])
+    return positions if isinstance(positions, list) else []
+
+
 def build_shadow_allocations(
     candidates: Iterable[Dict[str, Any]],
     regime: Dict[str, Any],
     account: Dict[str, Any],
     policy: RiskPolicy = RiskPolicy(),
 ) -> Dict[str, Any]:
-    if regime["regime"] == "RISK_OFF":
+    target_exposure = min(
+        max(_finite_number(regime.get("target_exposure_pct"), 0.0), 0.0),
+        policy.max_portfolio_exposure_pct,
+    )
+    if regime["regime"] == "RISK_OFF" or target_exposure <= 0.0:
         return {"allocations": [], "rejected": [], "target_exposure_pct": 0.0}
 
-    held = {str(p.get("symbol")) for p in account.get("positions", [])}
-    pending = {str(p.get("symbol")) for p in account.get("pending_orders", [])}
+    held = {str(p.get("symbol")) for p in _account_positions(account)}
+    pending = {str(p.get("symbol")) for p in account.get("pending_orders", []) if isinstance(p, dict)}
     validations = []
     eligible = []
     for raw in candidates:
@@ -126,7 +139,6 @@ def build_shadow_allocations(
     eligible.sort(key=lambda x: _finite_number(x.get("v7_rank_score"), -1e99), reverse=True)
     slots = max(0, policy.max_positions - len(held))
     selected = eligible[:slots]
-    target_exposure = min(_finite_number(regime.get("target_exposure_pct"), 0.0), policy.max_portfolio_exposure_pct)
     per_name = min(policy.max_single_position_pct, target_exposure / max(len(selected), 1)) if selected else 0.0
 
     allocations = [
