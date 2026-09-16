@@ -1,6 +1,11 @@
 import unittest
 
-from scripts.a100_autonomous_policy import RiskPolicy, build_shadow_allocations, classify_market_regime
+from scripts.a100_autonomous_policy import (
+    RiskPolicy,
+    apply_global_controls,
+    build_shadow_allocations,
+    classify_market_regime,
+)
 
 
 class AutonomousPolicyTests(unittest.TestCase):
@@ -58,6 +63,20 @@ class AutonomousPolicyTests(unittest.TestCase):
         p = build_shadow_allocations([], r, self.account, self.policy)
         self.assertEqual(p['allocations'], [])
         self.assertEqual(p['target_exposure_pct'], 0.0)
+
+    def test_global_kill_switch_forces_risk_off(self):
+        r = classify_market_regime(self.signal, self.account, self.policy)
+        controlled = apply_global_controls(r, mode='SHADOW', kill_switch=True)
+        self.assertEqual(controlled['regime'], 'RISK_OFF')
+        self.assertEqual(controlled['target_exposure_pct'], 0.0)
+        self.assertIn('GLOBAL_KILL_SWITCH', controlled['reasons'])
+        p = build_shadow_allocations([], controlled, self.account, self.policy)
+        self.assertEqual(p['allocations'], [])
+
+    def test_non_shadow_mode_fails_closed(self):
+        r = classify_market_regime(self.signal, self.account, self.policy)
+        with self.assertRaises(ValueError):
+            apply_global_controls(r, mode='LIVE', kill_switch=False)
 
     def test_portfolio_excludes_open_positions_and_caps_exposure(self):
         account = dict(self.account)
