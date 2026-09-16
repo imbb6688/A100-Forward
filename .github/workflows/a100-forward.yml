@@ -4,6 +4,14 @@ on:
   workflow_dispatch:
   schedule:
     - cron: '10 8 * * 1-5'
+  push:
+    branches:
+      - main
+    paths:
+      - 'scripts/**'
+      - 'tests/**'
+      - 'requirements.txt'
+      - '.github/workflows/a100-forward.yml'
 
 permissions:
   contents: write
@@ -32,6 +40,9 @@ jobs:
 
       - name: Install dependencies
         run: pip install -r requirements.txt
+
+      - name: Run autonomous policy tests
+        run: python -m unittest discover -s tests -v
 
       - name: A100 frozen preflight
         run: python scripts/preflight.py
@@ -70,28 +81,37 @@ jobs:
           test -s /mnt/data/forward/account.json
           test -s /mnt/data/forward/account.html
 
+      - name: Run A100 Autonomous Shadow controller
+        run: |
+          cd /mnt/data
+          python a100_autonomous_shadow.py
+          test -s /mnt/data/forward/autonomous/shadow_report.json
+          test -s /mnt/data/forward/autonomous/shadow.html
+          test -s /mnt/data/state/autonomous_journal.csv
+
       - name: Validate publish contract
         run: python scripts/validate_publish.py
 
-      - name: Persist paper-account state to repository
+      - name: Persist paper and autonomous state to repository
         run: |
           mkdir -p state
           cp -f /mnt/data/state/account_state.json state/account_state.json
           cp -f /mnt/data/state/trade_log.csv state/trade_log.csv
           cp -f /mnt/data/state/equity_curve.csv state/equity_curve.csv
+          cp -f /mnt/data/state/autonomous_journal.csv state/autonomous_journal.csv
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add state/account_state.json state/trade_log.csv state/equity_curve.csv
+          git add state/account_state.json state/trade_log.csv state/equity_curve.csv state/autonomous_journal.csv
           if git diff --cached --quiet; then
             echo "No account-state changes to commit."
           else
-            git commit -m "chore: update A100 Forward paper account [skip ci]"
+            git commit -m "chore: update A100 Forward and autonomous state [skip ci]"
             git push origin HEAD:main
           fi
 
       - name: Copy sanitized outputs to Pages
         run: |
-          mkdir -p site
+          mkdir -p site/autonomous
           cp /mnt/data/forward/index.html site/index.html
           cp /mnt/data/forward/latest_signal.json site/latest_signal.json
           cp /mnt/data/forward/latest_candidates.csv site/latest_candidates.csv
@@ -100,6 +120,10 @@ jobs:
           cp /mnt/data/forward/account.json site/account.json
           cp /mnt/data/forward/account_trades.csv site/account_trades.csv
           cp /mnt/data/forward/account_equity.csv site/account_equity.csv
+          cp /mnt/data/forward/autonomous/shadow.html site/autonomous/index.html
+          cp /mnt/data/forward/autonomous/shadow_report.json site/autonomous/shadow_report.json
+          cp /mnt/data/forward/autonomous/shadow_allocations.csv site/autonomous/shadow_allocations.csv
+          cp /mnt/data/forward/autonomous/shadow_rejections.csv site/autonomous/shadow_rejections.csv
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
