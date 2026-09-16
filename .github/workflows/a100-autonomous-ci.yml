@@ -7,8 +7,10 @@ on:
       - feat/autonomous-shadow-v1
     paths:
       - 'scripts/a100_autonomous_*.py'
+      - 'scripts/validate_publish.py'
       - 'tests/**'
       - '.github/workflows/a100-autonomous-ci.yml'
+      - '.github/workflows/a100-forward.yml'
 
 permissions:
   contents: read
@@ -29,5 +31,5 @@ jobs:
       - name: Run autonomous policy tests
         run: python -m unittest discover -s tests -v
 
-      - name: Compile autonomous modules
-        run: python -m py_compile scripts/a100_autonomous_policy.py scripts/a100_autonomous_shadow.py
+      - name: Compile autonomous modules and validators
+        run: python -m py_compile scripts/a100_autonomous_policy.py scripts/a100_autonomous_shadow.py scripts/validate_publish.py
