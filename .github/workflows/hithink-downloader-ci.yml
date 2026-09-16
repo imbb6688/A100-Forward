@@ -1,0 +1,32 @@
+name: HiThink Downloader CI
+
+on:
+  push:
+    branches:
+      - fix/hithink-downloader-contract
+    paths:
+      - 'scripts/download_hithink.py'
+      - '.github/workflows/hithink-downloader-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install parser dependencies
+        run: pip install -r requirements.txt
+      - name: Compile downloader
+        run: python -m py_compile scripts/download_hithink.py
+      - name: Verify downloader entrypoint and output contract constants
+        run: |
+          grep -q 'if __name__ == "__main__"' scripts/download_hithink.py
+          grep -q 'A100_2020_2026_raw.parquet' scripts/download_hithink.py
+          grep -q 'hithink_manifest.json' scripts/download_hithink.py
