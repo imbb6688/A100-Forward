@@ -1,0 +1,6 @@
+{
+  "schema_version": "A100-AUTONOMOUS-CONTROL-v1",
+  "mode": "SHADOW",
+  "kill_switch": false,
+  "notes": "Autonomous 1.x is shadow-only. Setting kill_switch=true forces RISK_OFF and zero new exposure. LIVE mode is intentionally unsupported."
+}
