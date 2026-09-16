@@ -54,8 +54,6 @@ def classify_market_regime(signal: Dict[str, Any], account: Dict[str, Any], poli
         regime = "RISK_OFF"
         exposure = 0.0
     elif not market_gate or candidate_count < policy.min_candidate_count:
-        # A closed market gate or an insufficient candidate set may be a healthy
-        # no-trade state. Keep reporting DEFENSIVE, but never allocate new risk.
         regime = "DEFENSIVE"
         exposure = 0.0
     elif drawdown <= policy.soft_drawdown or loss_streak >= policy.soft_loss_streak:
@@ -75,6 +73,29 @@ def classify_market_regime(signal: Dict[str, Any], account: Dict[str, Any], poli
         "market_gate": market_gate,
         "reasons": reasons,
     }
+
+
+def apply_global_controls(regime: Dict[str, Any], *, mode: str = "SHADOW", kill_switch: bool = False) -> Dict[str, Any]:
+    """Apply system-level controls after market/risk classification.
+
+    Autonomous 1.x intentionally supports SHADOW mode only. Any unexpected mode
+    fails closed. The global kill switch always forces RISK_OFF and zero new
+    exposure regardless of upstream model output.
+    """
+    normalized_mode = str(mode or "").strip().upper()
+    if normalized_mode != "SHADOW":
+        raise ValueError(f"unsupported autonomous mode: {normalized_mode or '<empty>'}")
+
+    controlled = dict(regime)
+    controlled["reasons"] = list(regime.get("reasons") or [])
+    controlled["control_mode"] = normalized_mode
+    controlled["kill_switch"] = bool(kill_switch)
+    if kill_switch:
+        controlled["regime"] = "RISK_OFF"
+        controlled["target_exposure_pct"] = 0.0
+        if "GLOBAL_KILL_SWITCH" not in controlled["reasons"]:
+            controlled["reasons"].append("GLOBAL_KILL_SWITCH")
+    return controlled
 
 
 def validate_candidate(candidate: Dict[str, Any]) -> Dict[str, Any]:
