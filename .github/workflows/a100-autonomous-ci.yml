@@ -4,7 +4,9 @@ on:
   workflow_dispatch:
   push:
     branches:
+      - main
       - feat/autonomous-shadow-v1
+      - fix/autonomous-empty-candidates
     paths:
       - 'scripts/a100_autonomous_*.py'
       - 'scripts/validate_publish.py'
