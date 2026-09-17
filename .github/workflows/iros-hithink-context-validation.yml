@@ -2,14 +2,6 @@ name: A100 IROS HiThink Context Validation
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - feature/iros-hithink-context-v1
-    paths:
-      - 'a100_iros/hithink_context.py'
-      - 'scripts/iros_hithink_context_probe.py'
-      - 'tests/test_iros_hithink_context.py'
-      - '.github/workflows/iros-hithink-context-validation.yml'
 
 permissions:
   contents: read
