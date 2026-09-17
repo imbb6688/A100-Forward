@@ -10,12 +10,12 @@ from .pipeline import ResearchPipeline
 
 
 BASE_URL = "https://fuyao.aicubes.cn"
-FINANCIAL_ENDPOINTS = {
+STATEMENT_ENDPOINTS = {
     "income": "/api/a-share/financials/income-statements",
     "balance_sheet": "/api/a-share/financials/balance-sheets",
     "cash_flow": "/api/a-share/financials/cash-flow-statements",
-    "indicators": "/api/a-share/financials/indicators",
 }
+INDICATORS_ENDPOINT = "/api/a-share/financials/indicators"
 VALUATION_ENDPOINT = "/api/a-share/valuations/snapshot"
 
 
@@ -23,20 +23,22 @@ VALUATION_ENDPOINT = "/api/a-share/valuations/snapshot"
 class HiThinkFundamentalBundle:
     ticker: str
     period: str
+    indicator_report: Optional[str]
     income: List[Dict[str, Any]]
     balance_sheet: List[Dict[str, Any]]
     cash_flow: List[Dict[str, Any]]
-    indicators: List[Dict[str, Any]]
+    indicators: Dict[str, Any]
     valuation: Dict[str, Any]
 
     def to_dict(self) -> Dict[str, Any]:
         return {
             "ticker": self.ticker,
             "period": self.period,
+            "indicator_report": self.indicator_report,
             "income": list(self.income),
             "balance_sheet": list(self.balance_sheet),
             "cash_flow": list(self.cash_flow),
-            "indicators": list(self.indicators),
+            "indicators": dict(self.indicators),
             "valuation": dict(self.valuation),
         }
 
@@ -89,6 +91,19 @@ class HiThinkFundamentalsClient:
             raise ValueError("HiThink data.item must be a list")
         return [dict(row) for row in raw if isinstance(row, dict)]
 
+    @staticmethod
+    def _indicator_report_from_statements(rows: Iterable[Dict[str, Any]]) -> Optional[str]:
+        candidates: List[tuple[int, str]] = []
+        quarter_map = {"Q1": 1, "Q2": 2, "Q3": 3, "Q4": 4, "FY": 4}
+        for row in rows:
+            year = row.get("fiscal_year")
+            fiscal_period = str(row.get("fiscal_period") or "").upper()
+            period_end_ms = row.get("period_end_ms")
+            if isinstance(year, int) and fiscal_period in quarter_map:
+                key = int(period_end_ms) if isinstance(period_end_ms, (int, float)) else year * 10 + quarter_map[fiscal_period]
+                candidates.append((key, f"{year}-{quarter_map[fiscal_period]}"))
+        return max(candidates, key=lambda pair: pair[0])[1] if candidates else None
+
     def financials(
         self,
         ticker: str,
@@ -106,8 +121,18 @@ class HiThinkFundamentalsClient:
 
         base_params = {"thscode": ticker, "period": period, "limit": int(limit)}
         statements: Dict[str, List[Dict[str, Any]]] = {}
-        for name, endpoint in FINANCIAL_ENDPOINTS.items():
+        for name, endpoint in STATEMENT_ENDPOINTS.items():
             statements[name] = self._items(self._get(endpoint, base_params))
+
+        indicator_report = self._indicator_report_from_statements(statements["income"])
+        indicators: Dict[str, Any] = {}
+        if indicator_report:
+            indicators = dict(
+                self._get(
+                    INDICATORS_ENDPOINT,
+                    {"thscode": ticker, "report": indicator_report},
+                )
+            )
 
         valuation_data = self._get(VALUATION_ENDPOINT, {"thscodes": ticker})
         valuation_items = self._items(valuation_data)
@@ -116,10 +141,11 @@ class HiThinkFundamentalsClient:
         return HiThinkFundamentalBundle(
             ticker=ticker,
             period=period,
+            indicator_report=indicator_report,
             income=statements["income"],
             balance_sheet=statements["balance_sheet"],
             cash_flow=statements["cash_flow"],
-            indicators=statements["indicators"],
+            indicators=indicators,
             valuation=valuation,
         )
 
@@ -141,27 +167,28 @@ def enrich_research_object_with_hithink_fundamentals(
         raise ValueError("bundle ticker does not match research object")
 
     pipeline = ResearchPipeline(obj)
+    latest_report_date_ms = max(
+        [
+            value
+            for value in (
+                _latest_report_date_ms(bundle.income),
+                _latest_report_date_ms(bundle.balance_sheet),
+                _latest_report_date_ms(bundle.cash_flow),
+            )
+            if value is not None
+        ],
+        default=None,
+    )
     pipeline.set_fundamentals(
         {
             "source": "HiThink Financial-API",
             "period": bundle.period,
+            "indicator_report": bundle.indicator_report,
             "income": bundle.income,
             "balance_sheet": bundle.balance_sheet,
             "cash_flow": bundle.cash_flow,
             "indicators": bundle.indicators,
-            "latest_report_date_ms": max(
-                [
-                    value
-                    for value in (
-                        _latest_report_date_ms(bundle.income),
-                        _latest_report_date_ms(bundle.balance_sheet),
-                        _latest_report_date_ms(bundle.cash_flow),
-                        _latest_report_date_ms(bundle.indicators),
-                    )
-                    if value is not None
-                ],
-                default=None,
-            ),
+            "latest_report_date_ms": latest_report_date_ms,
         }
     )
     pipeline.set_valuation(
@@ -177,7 +204,7 @@ def enrich_research_object_with_hithink_fundamentals(
                 statement=(
                     f"HiThink fundamentals loaded for {bundle.ticker}: "
                     f"income={len(bundle.income)}, balance={len(bundle.balance_sheet)}, "
-                    f"cashflow={len(bundle.cash_flow)}, indicators={len(bundle.indicators)}."
+                    f"cashflow={len(bundle.cash_flow)}, indicator_report={bundle.indicator_report or 'none'}."
                 ),
                 source="HiThink Financial-API",
                 confidence=1.0,
