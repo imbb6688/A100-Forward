@@ -3,6 +3,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from a100_runtime_checks import require_account_continuity, require_authoritative_state
+
 STATE_DIR=Path('/mnt/data/state'); FORWARD_DIR=Path('/mnt/data/forward')
 STATE_DIR.mkdir(parents=True,exist_ok=True); FORWARD_DIR.mkdir(parents=True,exist_ok=True)
 STATE_FILE=STATE_DIR/'account_state.json'; TRADES_FILE=STATE_DIR/'trade_log.csv'; EQUITY_FILE=STATE_DIR/'equity_curve.csv'
@@ -73,10 +75,18 @@ if manifest.get('latest_trade_date')!=latest_date:
 if not all(bool(manifest.get(k)) for k in ('full_market','complete','data_valid')):
     raise SystemExit('FAIL CLOSED: incomplete full-market session')
 
+try:
+    require_authoritative_state((STATE_FILE, TRADES_FILE, EQUITY_FILE))
+except RuntimeError as exc:
+    raise SystemExit(str(exc)) from None
 s=load_state(); trades=load_csv(TRADES_FILE,TRADE_COLS); eqcurve=load_csv(EQUITY_FILE,EQ_COLS); actions=[]
 start_us=pd.Timestamp(START).value//1000; start_code=int(np.searchsorted(ud,start_us))
 if start_code>=len(ud): raise SystemExit('Forward start is after available data')
-last=s.get('last_processed_date_code'); first=start_code if last is None else int(last)+1
+try:
+    require_account_continuity(s, [dstr(ud, t) for t in range(len(ud))])
+except RuntimeError as exc:
+    raise SystemExit(str(exc)) from None
+last=s.get('last_processed_date_code'); first=int(last)+1
 
 for t in range(first,latest+1):
     dt=pd.to_datetime(int(ud[t]),unit='us'); ds=dt.strftime('%Y-%m-%d')
@@ -144,7 +154,7 @@ for t in range(first,latest+1):
         for p in s['positions']: cc[int(p['cluster'])]=cc.get(int(p['cluster']),0)+1
         for i in ix:
             if len(selected)>=2 or len(s['positions'])+len(selected)>=MAX_POS: break
-            raw=int(sig[i]); sid=int(sid_sig[i]); sym=str(symbols[sid]); clu=int(clusters[raw]); aa=float(atr[raw])
+            raw=int(sig[i]); sid=int(sid_sig[i]); sym=str(symbols[sid]); clu=int(clusters[t, sid]); aa=float(atr[raw])
             if sym in held or clu<0 or cc.get(clu,0)>=MAX_MAINLINE or not(np.isfinite(aa) and aa>0): continue
             order={'symbol':sym,'sid':sid,'cluster':clu,'signal_date_code':t,'signal_date':ds,'atr':aa,'risk_multiplier':rmclose,'v7_rank_score':float(ranks[i]),'v6_score':float(v6[i]),'industry_score':float(f['industry'][i]),'market_score':float(f['market'][i])}
             selected.append(order); held.add(sym); cc[clu]=cc.get(clu,0)+1
