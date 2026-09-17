@@ -2,16 +2,6 @@ name: A100 IROS CI
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - feature/iros-v0.1-foundation
-    paths:
-      - 'a100_iros/**'
-      - 'tests/test_iros_*.py'
-      - 'docs/IROS_*.md'
-      - 'examples/**'
-      - 'README.md'
-      - '.github/workflows/iros-ci.yml'
   pull_request:
     paths:
       - 'a100_iros/**'
