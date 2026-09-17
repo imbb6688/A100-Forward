@@ -1,6 +1,5 @@
 import tempfile
 import unittest
-from pathlib import Path
 
 from a100_iros import (
     DecisionState,
@@ -20,9 +19,14 @@ from a100_iros import (
     ResearchRepository,
     ResearchSnapshot,
     SecurityResearchCard,
+    StageOutcome,
     Thesis,
     ThesisStance,
+    TradePlan,
     TrendMode,
+    ValidationRecord,
+    ValidationStage,
+    ValidationStageResult,
     ValidationStatus,
     compare_snapshots,
     evaluate_trade_readiness,
@@ -44,13 +48,24 @@ def make_object() -> ResearchObject:
     )
 
 
+def validated_record() -> ValidationRecord:
+    return ValidationRecord(
+        validation_id="VAL-001",
+        stages=[
+            ValidationStageResult(ValidationStage.BACKTEST, StageOutcome.PASS, evidence_ref="artifact://backtest"),
+            ValidationStageResult(ValidationStage.WALK_FORWARD, StageOutcome.PASS, evidence_ref="artifact://wf"),
+            ValidationStageResult(ValidationStage.SHADOW_PAPER, StageOutcome.PASS, evidence_ref="artifact://shadow"),
+        ],
+        accepted_at="2026-09-17T00:00:00+00:00",
+        acceptance_ref="04-backtest-validation/acceptance-001",
+    )
+
+
 class IROSV1Tests(unittest.TestCase):
     def test_snapshot_delta_tracks_thesis_evidence_and_risk_changes(self) -> None:
         obj = make_object()
         before = ResearchSnapshot.capture(obj, snapshot_id="s1", captured_at="2026-09-17T00:00:00+00:00")
-        obj.security.evidence.append(
-            EvidenceItem(kind=EvidenceKind.FACT, statement="Revenue accelerated", source="filing")
-        )
+        obj.security.evidence.append(EvidenceItem(kind=EvidenceKind.FACT, statement="Revenue accelerated", source="filing"))
         obj.security.risks.append("Valuation compression")
         obj.security.thesis = Thesis(
             stance=ThesisStance.POSITIVE,
@@ -126,9 +141,7 @@ class IROSV1Tests(unittest.TestCase):
                 priced_in=0.4,
             )
         )
-        pipeline.add_evidence(
-            [EvidenceItem(kind=EvidenceKind.FACT, statement="Filed contract update", source="exchange")]
-        )
+        pipeline.add_evidence([EvidenceItem(kind=EvidenceKind.FACT, statement="Filed contract update", source="exchange")])
         pipeline.update_thesis(
             stance=ThesisStance.POSITIVE,
             bull_case="Upside if demand accelerates",
@@ -138,32 +151,61 @@ class IROSV1Tests(unittest.TestCase):
             invalidation_conditions=["orders are cancelled"],
             confidence=0.65,
         )
-        pipeline.set_premortem(
-            [PremortemFailure(category="fundamental", scenario="orders fail to convert")]
-        )
+        pipeline.set_premortem([PremortemFailure(category="fundamental", scenario="orders fail to convert")])
         self.assertEqual(obj.state, DecisionState.RESEARCHING)
         self.assertEqual(obj.security.market_context["risk_mode"], "NEUTRAL")
         self.assertEqual(len(obj.security.catalysts), 1)
         self.assertGreaterEqual(len(obj.metadata["iros_audit_log"]), 5)
 
-    def test_trade_readiness_requires_validation_evidence_and_invalidation(self) -> None:
-        obj = make_object()
-        obj.transition(DecisionState.RESEARCHING)
-        obj.transition(DecisionState.CANDIDATE)
-        obj.transition(DecisionState.VALIDATION)
-        fail = evaluate_trade_readiness(obj)
-        self.assertFalse(fail.passed)
-
-        obj.security.evidence.append(
-            EvidenceItem(kind=EvidenceKind.FACT, statement="Verified fact", source="filing")
+    def test_validation_record_is_not_valid_without_all_stages_and_acceptance(self) -> None:
+        incomplete = ValidationRecord(
+            validation_id="VAL-INCOMPLETE",
+            stages=[ValidationStageResult(ValidationStage.BACKTEST, StageOutcome.PASS)],
         )
-        obj.security.thesis = Thesis(
+        self.assertFalse(incomplete.is_validated)
+        complete_but_unaccepted = ValidationRecord(
+            validation_id="VAL-UNACCEPTED",
+            stages=[
+                ValidationStageResult(ValidationStage.BACKTEST, StageOutcome.PASS),
+                ValidationStageResult(ValidationStage.WALK_FORWARD, StageOutcome.PASS),
+                ValidationStageResult(ValidationStage.SHADOW_PAPER, StageOutcome.PASS),
+            ],
+        )
+        self.assertFalse(complete_but_unaccepted.is_validated)
+        self.assertTrue(validated_record().is_validated)
+
+    def test_trade_readiness_requires_validation_record_and_trade_plan(self) -> None:
+        obj = make_object()
+        pipeline = ResearchPipeline(obj)
+        pipeline.ensure_researching()
+        pipeline.add_evidence([EvidenceItem(kind=EvidenceKind.FACT, statement="Verified fact", source="filing")])
+        pipeline.update_thesis(
             stance=ThesisStance.POSITIVE,
+            bull_case="Upside",
             base_case="Validated research case",
+            bear_case="Downside",
+            must_be_true=["demand persists"],
             invalidation_conditions=["thesis condition fails"],
             confidence=0.7,
         )
-        obj.metadata["validation_status"] = ValidationStatus.VALIDATED.value
+        pipeline.mark_candidate()
+        pipeline.send_to_validation()
+        self.assertFalse(evaluate_trade_readiness(obj).passed)
+
+        pipeline.attach_validation_record(validated_record())
+        self.assertFalse(evaluate_trade_readiness(obj).passed)
+
+        pipeline.attach_trade_plan(
+            TradePlan(
+                plan_id="PLAN-001",
+                ticker="300007.SZ",
+                entry_conditions=["validated entry trigger"],
+                invalidation_conditions=["thesis condition fails"],
+                exit_conditions=["exit condition"],
+                initial_position_fraction=0.05,
+                maximum_position_fraction=0.10,
+            )
+        )
         passed = promote_to_trade_ready(obj)
         self.assertTrue(passed.passed)
         self.assertEqual(obj.state, DecisionState.TRADE_READY)
