@@ -1,0 +1,57 @@
+name: A100 IROS HiThink Context Validation
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run full unit tests
+        run: python -m unittest discover -s tests -v
+      - name: Probe real HiThink context endpoints
+        env:
+          HITHINK_FINANCE_API_KEY: ${{ secrets.HITHINK_FINANCE_API_KEY }}
+          IROS_CONTEXT_PROBE_OUTPUT: iros_context_probe.json
+        run: python scripts/iros_hithink_context_probe.py
+      - name: Validate probe contract
+        run: |
+          test -s iros_context_probe.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p = json.loads(Path('iros_context_probe.json').read_text(encoding='utf-8'))
+          assert p['industry_catalog_count'] > 0
+          assert p['sample_industry_index']
+          assert p['sample_constituent_count'] >= 0
+          assert isinstance(p['anomaly'], dict)
+          assert isinstance(p['dragon_tiger'], dict)
+          assert isinstance(p['limit_up'], dict)
+          print(json.dumps({
+              'industry_catalog_count': p['industry_catalog_count'],
+              'sample_industry_index': p['sample_industry_index'],
+              'sample_constituent_count': p['sample_constituent_count'],
+              'anomaly_keys': sorted(p['anomaly'].keys()),
+              'dragon_tiger_keys': sorted(p['dragon_tiger'].keys()),
+              'limit_up_keys': sorted(p['limit_up'].keys()),
+          }, ensure_ascii=False, indent=2))
+          PY
+      - name: Upload sanitized probe
+        uses: actions/upload-artifact@v4
+        with:
+          name: iros-hithink-context-probe
+          path: iros_context_probe.json
+          retention-days: 7
