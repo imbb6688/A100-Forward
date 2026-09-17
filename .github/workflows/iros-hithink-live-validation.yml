@@ -2,14 +2,6 @@ name: A100 IROS HiThink Live Validation
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - feature/iros-hithink-live-v1
-    paths:
-      - 'a100_iros/**'
-      - 'scripts/iros_hithink_live.py'
-      - 'tests/test_iros_hithink_live.py'
-      - '.github/workflows/iros-hithink-live-validation.yml'
 
 permissions:
   contents: read
