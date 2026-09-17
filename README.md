@@ -15,6 +15,8 @@ See:
 - `examples/iros_end_to_end.py` — synthetic end-to-end example.
 - `.github/workflows/iros-ci.yml` — isolated IROS validation workflow.
 - `scripts/iros_enrich.py` — enrich Frozen V7/Watchlist securities with real HiThink market, industry, fundamentals, valuation and event context.
+- `docs/GRADUATION_GATE_V1.md` — evidence thresholds for Data → Walk Forward → Paper → Risk → Graduation.
+- `scripts/a100_graduation_gate.py` — fail-closed graduation evaluator; it never enables live or broker orders.
 
 ## What it does
 

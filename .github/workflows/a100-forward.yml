@@ -50,9 +50,10 @@ jobs:
 
       - name: Prepare runtime and restore account state
         run: |
-          sudo mkdir -p /mnt/data/A100_complete_results /mnt/data/A100_v5_results /mnt/data/A100_v6_results /mnt/data/A100_v7_results /mnt/data/forward /mnt/data/state /mnt/data/iros_research
+          sudo mkdir -p /mnt/data/A100_complete_results /mnt/data/A100_v5_results /mnt/data/A100_v6_results /mnt/data/A100_v7_results /mnt/data/forward /mnt/data/state /mnt/data/iros_research /mnt/data/validation
           sudo chown -R $USER:$USER /mnt/data
           cp scripts/*.py /mnt/data/
+          cp -a validation/. /mnt/data/validation/
           if [ -d state ]; then
             find state -maxdepth 1 -type f -print -exec cp -f {} /mnt/data/state/ \;
           fi
@@ -108,6 +109,13 @@ jobs:
           test -s /mnt/data/forward/autonomous/shadow.html
           test -s /mnt/data/state/autonomous_journal.csv
 
+      - name: Refresh data, risk and graduation evidence
+        run: |
+          python scripts/a100_data_inventory.py
+          python scripts/a100_risk_scenarios.py
+          python scripts/a100_graduation_gate.py
+          test -s /mnt/data/forward/graduation_gate.json
+
       - name: Validate publish contract
         run: python scripts/validate_publish.py
 
@@ -150,6 +158,7 @@ jobs:
           cp /mnt/data/forward/autonomous/shadow_report.json site/autonomous/shadow_report.json
           cp /mnt/data/forward/autonomous/shadow_allocations.csv site/autonomous/shadow_allocations.csv
           cp /mnt/data/forward/autonomous/shadow_rejections.csv site/autonomous/shadow_rejections.csv
+          cp /mnt/data/forward/graduation_gate.json site/graduation_gate.json
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
