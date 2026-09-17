@@ -286,7 +286,8 @@ class IROSEnrichmentOrchestrator:
         )
         payload = security_file.to_dict()
         archive_path = self.history_dir / target.ticker.replace(".", "-") / f"{snapshot_id}.json"
-        if archive_path.exists():
+        repository_snapshot_path = self.repository.snapshot_path(obj.research_id, snapshot_id)
+        if archive_path.exists() or repository_snapshot_path.exists():
             raise FileExistsError(f"security research snapshot already exists: {snapshot_id}")
         _atomic_json(archive_path, payload)
         self.repository.save_snapshot(snapshot)
@@ -337,6 +338,9 @@ class IROSEnrichmentOrchestrator:
                 obj.security.industry_context = dict(industry_context[target.ticker])
                 events = event_context[target.ticker]
                 obj.metadata["event_context"] = copy.deepcopy(events)
+                # The fundamentals adapter appends its own audit entries through a
+                # separate pipeline instance; reload before recording later stages.
+                pipeline = ResearchPipeline(obj)
                 pipeline.add_evidence(
                     [
                         EvidenceItem(
