@@ -1,0 +1,15 @@
+{
+  "schema_version": "A100-IROS-ENRICHMENT-RUN-v1",
+  "generated_at": "2026-09-17T15:36:57.423538+00:00",
+  "as_of": null,
+  "results": [],
+  "complete": 0,
+  "failed": 0,
+  "status": "SKIPPED_NO_TARGETS",
+  "governance": {
+    "research_only": true,
+    "modifies_frozen_v7": false,
+    "generates_orders": false,
+    "auto_promotes_state": false
+  }
+}
