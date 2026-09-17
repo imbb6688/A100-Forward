@@ -7,11 +7,12 @@ ACCOUNT=Path('/mnt/data/forward/account.json')
 AUTONOMOUS=Path('/mnt/data/forward/autonomous/shadow_report.json')
 AUTONOMOUS_HTML=Path('/mnt/data/forward/autonomous/shadow.html')
 JOURNAL=Path('/mnt/data/state/autonomous_journal.csv')
+GRADUATION=Path('/mnt/data/forward/graduation_gate.json')
 
 def fail(message):
     raise SystemExit(f'FAIL CLOSED: {message}')
 
-for path in (MANIFEST,SIGNAL,ACCOUNT,AUTONOMOUS,AUTONOMOUS_HTML,JOURNAL):
+for path in (MANIFEST,SIGNAL,ACCOUNT,AUTONOMOUS,AUTONOMOUS_HTML,JOURNAL,GRADUATION):
     if not path.exists() or path.stat().st_size==0:
         fail(f'missing publication artifact: {path}')
 
@@ -19,6 +20,7 @@ manifest=json.loads(MANIFEST.read_text(encoding='utf-8'))
 signal=json.loads(SIGNAL.read_text(encoding='utf-8'))
 account=json.loads(ACCOUNT.read_text(encoding='utf-8'))
 autonomous=json.loads(AUTONOMOUS.read_text(encoding='utf-8'))
+graduation=json.loads(GRADUATION.read_text(encoding='utf-8'))
 
 if not all(bool(manifest.get(k)) for k in ('full_market','complete','data_valid')):
     fail('manifest is not complete/full-market/data-valid')
@@ -59,6 +61,12 @@ if autonomous.get('mode')!='SHADOW':
     fail('autonomous mode must remain SHADOW')
 if autonomous.get('execution')!='SHADOW_ONLY_NO_BROKER_ORDERS':
     fail('autonomous execution contract is not shadow-only')
+if graduation.get('status') not in {'BLOCKED','GRADUATED'}:
+    fail('unknown graduation status')
+if graduation.get('live_trading_enabled') is not False:
+    fail('graduation report must never auto-enable live trading')
+if graduation.get('broker_orders_enabled') is not False:
+    fail('graduation report must never enable broker orders')
 
 validation=autonomous.get('validation') or {}
 if not bool(validation.get('data_valid')):

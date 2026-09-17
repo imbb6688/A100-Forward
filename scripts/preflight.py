@@ -14,6 +14,10 @@ required=[
     "a100_account_v1.py",
     "a100_runtime_checks.py",
     "validate_publish.py",
+    "a100_data_inventory.py",
+    "a100_walk_forward.py",
+    "a100_risk_scenarios.py",
+    "a100_graduation_gate.py",
 ]
 missing=[x for x in required if not (ROOT/x).exists()]
 if missing: raise SystemExit(f"missing scripts: {missing}")

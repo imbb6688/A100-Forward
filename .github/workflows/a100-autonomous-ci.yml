@@ -2,6 +2,9 @@ name: A100 Autonomous CI
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches:
+      - main
   push:
     branches:
       - main
@@ -10,6 +13,12 @@ on:
     paths:
       - 'scripts/a100_autonomous_*.py'
       - 'scripts/validate_publish.py'
+      - 'scripts/a100_data_inventory.py'
+      - 'scripts/a100_walk_forward.py'
+      - 'scripts/a100_graduation_gate.py'
+      - 'scripts/a100_risk_scenarios.py'
+      - 'config/graduation_policy.json'
+      - 'validation/**'
       - 'tests/**'
       - '.github/workflows/a100-autonomous-ci.yml'
       - '.github/workflows/a100-forward.yml'
@@ -37,4 +46,4 @@ jobs:
         run: python -m unittest discover -s tests -v
 
       - name: Compile autonomous modules and validators
-        run: python -m py_compile scripts/a100_autonomous_policy.py scripts/a100_autonomous_shadow.py scripts/validate_publish.py
+        run: python -m py_compile scripts/a100_autonomous_policy.py scripts/a100_autonomous_shadow.py scripts/a100_data_inventory.py scripts/a100_walk_forward.py scripts/a100_risk_scenarios.py scripts/a100_graduation_gate.py scripts/validate_publish.py

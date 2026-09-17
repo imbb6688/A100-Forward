@@ -1,0 +1,42 @@
+{
+  "version": "A100_GRADUATION_POLICY_V1",
+  "frozen_v7_blob_sha": "7e0b04ff14bbe6b22982135c889a92e8541aadf1",
+  "data": {
+    "min_completeness_ratio": 0.98,
+    "min_latest_rows": 4500,
+    "required_pit_datasets": [
+      "price_adjustment",
+      "st_risk_warning_history",
+      "industry_membership_history"
+    ]
+  },
+  "walk_forward": {
+    "min_folds": 3,
+    "min_total_trades": 100,
+    "min_profitable_fold_ratio": 0.67,
+    "min_median_profit_factor": 1.10,
+    "min_worst_fold_profit_factor": 0.90,
+    "max_worst_fold_drawdown": 0.15
+  },
+  "paper": {
+    "min_sessions": 60,
+    "min_closed_trades": 30,
+    "min_profit_factor": 1.10,
+    "max_drawdown": 0.12,
+    "max_state_gap_sessions": 0
+  },
+  "risk": {
+    "required_scenarios": [
+      "invalid_data",
+      "stale_data",
+      "hard_drawdown",
+      "hard_loss_streak",
+      "unknown_order_state",
+      "broker_unavailable",
+      "price_conflict",
+      "t_plus_one",
+      "limit_up_entry",
+      "limit_down_exit"
+    ]
+  }
+}

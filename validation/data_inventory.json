@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "datasets": {
+    "price_adjustment": {
+      "status": "COMPLETE",
+      "point_in_time_safe": true,
+      "source": "HiThink official market dumps"
+    },
+    "st_risk_warning_history": {
+      "status": "MISSING_UPSTREAM_OR_NOT_INGESTED",
+      "point_in_time_safe": false,
+      "source": null
+    },
+    "industry_membership_history": {
+      "status": "MISSING_UPSTREAM_OR_NOT_INGESTED",
+      "point_in_time_safe": false,
+      "source": null
+    },
+    "capital_flow": {
+      "status": "UNAVAILABLE_UPSTREAM",
+      "point_in_time_safe": false,
+      "source": null
+    }
+  }
+}

@@ -17,6 +17,33 @@ class RiskPolicy:
     min_candidate_count: int = 2
 
 
+def execution_interlock(
+    signal: Dict[str, Any],
+    account: Dict[str, Any],
+    execution_state: Dict[str, Any],
+    policy: RiskPolicy = RiskPolicy(),
+) -> Dict[str, Any]:
+    """Fail-closed new-risk interlock; never sends or constructs broker orders."""
+    regime = classify_market_regime(signal, account, policy)
+    reasons = list(regime["reasons"])
+    if signal.get("data_fresh", True) is not True:
+        reasons.append("STALE_DATA")
+    if execution_state.get("broker_available") is not True:
+        reasons.append("BROKER_UNAVAILABLE")
+    if execution_state.get("order_state_known") is not True:
+        reasons.append("UNKNOWN_ORDER_STATE")
+    if execution_state.get("price_consistent") is not True:
+        reasons.append("PRICE_CONFLICT")
+    allow = regime["regime"] in {"RISK_ON", "CAUTIOUS"} and not reasons
+    return {
+        "allow_new_risk": allow,
+        "kill_switch": not allow,
+        "reasons": sorted(set(reasons)),
+        "regime": regime["regime"],
+        "broker_orders_enabled": False,
+    }
+
+
 def _finite_number(value: Any, default: float = 0.0) -> float:
     try:
         number = float(value)
