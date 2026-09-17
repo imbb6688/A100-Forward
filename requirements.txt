@@ -4,3 +4,5 @@ scipy>=1.11,<2
 scikit-learn>=1.4,<2
 requests>=2.31,<3
 pyarrow>=15,<24
+baostock==0.8.9
+xlrd>=2.0,<3
