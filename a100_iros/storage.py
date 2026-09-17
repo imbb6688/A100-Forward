@@ -14,15 +14,11 @@ from .models import (
     ThesisStance,
 )
 
-SCHEMA_VERSION = "0.1"
+SCHEMA_VERSION = "1.0"
+SUPPORTED_SCHEMA_VERSIONS = {"0.1", "1.0"}
 
 
-def _from_payload(payload: Dict[str, Any]) -> ResearchObject:
-    schema_version = payload.get("schema_version")
-    if schema_version != SCHEMA_VERSION:
-        raise ValueError(f"unsupported IROS schema_version: {schema_version!r}")
-
-    raw = payload["research_object"]
+def research_object_from_dict(raw: Dict[str, Any]) -> ResearchObject:
     sec = raw["security"]
     thesis_raw = sec.get("thesis", {})
     evidence_raw = sec.get("evidence", [])
@@ -70,12 +66,22 @@ def _from_payload(payload: Dict[str, Any]) -> ResearchObject:
     return ResearchObject(
         research_id=raw["research_id"],
         security=card,
-        state=DecisionState(raw["state"]),
+        state=DecisionState(raw.get("state", DecisionState.DISCOVERED.value)),
         created_at=raw["created_at"],
         updated_at=raw["updated_at"],
         state_history=list(raw.get("state_history", [])),
         metadata=dict(raw.get("metadata", {})),
     )
+
+
+def _from_payload(payload: Dict[str, Any]) -> ResearchObject:
+    schema_version = str(payload.get("schema_version", ""))
+    if schema_version not in SUPPORTED_SCHEMA_VERSIONS:
+        raise ValueError(f"unsupported IROS schema_version: {schema_version!r}")
+    raw = payload.get("research_object")
+    if not isinstance(raw, dict):
+        raise ValueError("research_object must be a JSON object")
+    return research_object_from_dict(raw)
 
 
 def save_research_object(obj: ResearchObject, path: str | Path) -> None:
