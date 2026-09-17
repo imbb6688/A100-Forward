@@ -6,6 +6,8 @@ from typing import Any, Dict, Iterable, List, Optional
 
 from .assessments import EventAssessment, IndustryAssessment, MarketRegimeAssessment, ResearchScore
 from .models import DecisionState, EvidenceItem, ResearchObject, Thesis, ThesisStance
+from .trade_plan import TradePlan
+from .validation import ValidationRecord
 
 
 def _utc_now() -> str:
@@ -39,6 +41,11 @@ class ResearchPipeline:
 
     obj: ResearchObject
     audit_log: List[Dict[str, Any]] = field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        existing = self.obj.metadata.get("iros_audit_log")
+        if isinstance(existing, list):
+            self.audit_log = [dict(row) for row in existing if isinstance(row, dict)]
 
     def _record(self, action: str, details: Optional[Dict[str, Any]] = None) -> None:
         row: Dict[str, Any] = {"at": _utc_now(), "action": action}
@@ -123,6 +130,20 @@ class ResearchPipeline:
         rows = [item.to_dict() for item in failures]
         self.obj.metadata["premortem"] = rows
         self._record("set_premortem", {"count": len(rows)})
+
+    def attach_validation_record(self, record: ValidationRecord) -> None:
+        self.obj.metadata["validation_record"] = record.to_dict()
+        self.obj.metadata["validation_status"] = record.status.value
+        self._record(
+            "attach_validation_record",
+            {"validation_id": record.validation_id, "status": record.status.value},
+        )
+
+    def attach_trade_plan(self, plan: TradePlan) -> None:
+        if plan.ticker.strip().upper() != self.obj.security.ticker:
+            raise ValueError("trade plan ticker does not match research object")
+        self.obj.metadata["trade_plan"] = plan.to_dict()
+        self._record("attach_trade_plan", {"plan_id": plan.plan_id})
 
     def mark_candidate(self) -> None:
         self.ensure_researching()
