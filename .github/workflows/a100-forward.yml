@@ -80,6 +80,11 @@ jobs:
           python a100_v7_forward_ranker.py
           python a100_forward_live.py
 
+      - name: Run Frozen V7 out-of-sample ranking evidence
+        run: |
+          python scripts/a100_v7_walk_forward_proxy.py
+          test -s /mnt/data/validation/walk_forward_proxy_report.json
+
       - name: Enrich IROS Security Research Files
         env:
           HITHINK_FINANCE_API_KEY: ${{ secrets.HITHINK_FINANCE_API_KEY }}
@@ -159,6 +164,7 @@ jobs:
           cp /mnt/data/forward/autonomous/shadow_allocations.csv site/autonomous/shadow_allocations.csv
           cp /mnt/data/forward/autonomous/shadow_rejections.csv site/autonomous/shadow_rejections.csv
           cp /mnt/data/forward/graduation_gate.json site/graduation_gate.json
+          cp /mnt/data/validation/walk_forward_proxy_report.json site/walk_forward_proxy_report.json
 
       - name: Configure Pages
         uses: actions/configure-pages@v5

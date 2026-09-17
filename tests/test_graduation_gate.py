@@ -19,7 +19,7 @@ class GraduationGateTests(unittest.TestCase):
         (root / "hithink_manifest.json").write_text(json.dumps({"data_valid": True, "full_market": True, "complete": True, "latest_rows": 5000, "completeness_ratio": 1.0}))
         (root / "validation" / "data_inventory.json").write_text(json.dumps({"datasets": {name: {"status": "COMPLETE", "point_in_time_safe": True} for name in ("price_adjustment", "st_risk_warning_history", "industry_membership_history")}}))
         folds = [{"profit_factor": 1.2, "max_drawdown": -0.10, "trades": 40, "net_return": 0.02} for _ in range(3)]
-        (root / "validation" / "walk_forward_report.json").write_text(json.dumps({"status": "COMPLETE", "data_fingerprint": "abc", "folds": folds}))
+        (root / "validation" / "walk_forward_report.json").write_text(json.dumps({"status": "COMPLETE", "evidence_class": "PORTFOLIO_REPLAY", "data_fingerprint": "abc", "folds": folds}))
         scenarios = run_scenarios()
         (root / "validation" / "risk_scenarios.json").write_text(json.dumps(scenarios))
         (root / "state" / "account_state.json").write_text(json.dumps({"closed_trades": 30, "max_drawdown": -0.05}))

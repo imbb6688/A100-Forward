@@ -111,6 +111,7 @@ def validate_walk_forward(policy: Mapping[str, Any], report: Mapping[str, Any]) 
     worst_pf = min(pfs) if pfs else 0.0
     worst_dd = max(drawdowns) if drawdowns else 999.0
     return [
+        _check("walk_forward_evidence_class", report.get("evidence_class") == "PORTFOLIO_REPLAY", report.get("evidence_class"), "PORTFOLIO_REPLAY", "WF_PROXY_NOT_GRADUATION_EVIDENCE"),
         _check("walk_forward_evidence_signed", report.get("status") == "COMPLETE" and bool(report.get("data_fingerprint")), {"status": report.get("status"), "data_fingerprint": report.get("data_fingerprint")}, "COMPLETE_WITH_FINGERPRINT", "WF_EVIDENCE_INCOMPLETE"),
         _check("walk_forward_folds", len(folds) >= int(cfg["min_folds"]), len(folds), cfg["min_folds"], "WF_TOO_FEW_FOLDS"),
         _check("walk_forward_trades", trades >= int(cfg["min_total_trades"]), trades, cfg["min_total_trades"], "WF_TOO_FEW_TRADES"),

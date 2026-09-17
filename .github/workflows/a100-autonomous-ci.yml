@@ -15,6 +15,8 @@ on:
       - 'scripts/validate_publish.py'
       - 'scripts/a100_data_inventory.py'
       - 'scripts/a100_walk_forward.py'
+      - 'scripts/a100_pit_import.py'
+      - 'scripts/a100_v7_walk_forward_proxy.py'
       - 'scripts/a100_graduation_gate.py'
       - 'scripts/a100_risk_scenarios.py'
       - 'config/graduation_policy.json'
@@ -46,4 +48,4 @@ jobs:
         run: python -m unittest discover -s tests -v
 
       - name: Compile autonomous modules and validators
-        run: python -m py_compile scripts/a100_autonomous_policy.py scripts/a100_autonomous_shadow.py scripts/a100_data_inventory.py scripts/a100_walk_forward.py scripts/a100_risk_scenarios.py scripts/a100_graduation_gate.py scripts/validate_publish.py
+        run: python -m py_compile scripts/a100_autonomous_policy.py scripts/a100_autonomous_shadow.py scripts/a100_data_inventory.py scripts/a100_pit_import.py scripts/a100_walk_forward.py scripts/a100_v7_walk_forward_proxy.py scripts/a100_risk_scenarios.py scripts/a100_graduation_gate.py scripts/validate_publish.py
