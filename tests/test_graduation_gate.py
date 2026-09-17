@@ -53,6 +53,18 @@ class GraduationGateTests(unittest.TestCase):
         report = run_scenarios()
         self.assertTrue(all(x["passed"] for x in report["scenarios"].values()))
 
+    def test_pre_journal_legacy_equity_does_not_create_permanent_gap(self):
+        policy = json.loads(POLICY.read_text())
+        tmp, root = self._root()
+        try:
+            equity = root / "state" / "equity_curve.csv"
+            equity.write_text(equity.read_text() + "\n2025-12-31")
+            result = evaluate(policy, root)
+        finally:
+            tmp.cleanup()
+        aligned = next(x for x in result["checks"]["paper"] if x["name"] == "paper_state_aligned")
+        self.assertTrue(aligned["passed"])
+
 
 if __name__ == "__main__":
     unittest.main()
