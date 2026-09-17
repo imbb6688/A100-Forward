@@ -18,6 +18,8 @@ required=[
     "a100_walk_forward.py",
     "a100_risk_scenarios.py",
     "a100_graduation_gate.py",
+    "a100_pit_import.py",
+    "a100_v7_walk_forward_proxy.py",
 ]
 missing=[x for x in required if not (ROOT/x).exists()]
 if missing: raise SystemExit(f"missing scripts: {missing}")

@@ -1,6 +1,7 @@
 {
   "schema_version": 1,
   "status": "AWAITING_PIT_DATA_AND_REPRODUCIBLE_RUN",
+  "evidence_class": "NONE",
   "data_fingerprint": null,
   "folds": [],
   "note": "No results are fabricated. Populate only from the versioned Walk Forward runner after PIT datasets are complete."
