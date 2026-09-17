@@ -3,8 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Dict, List
 
-from .assessments import ValidationStatus
 from .models import DecisionState, EvidenceKind, ResearchObject
+from .trade_plan import trade_plan_from_dict
+from .validation import validation_record_from_dict
 
 
 @dataclass(frozen=True)
@@ -21,16 +22,37 @@ class GateResult:
         }
 
 
+def _has_valid_validation_record(obj: ResearchObject) -> bool:
+    raw = obj.metadata.get("validation_record")
+    if not isinstance(raw, dict):
+        return False
+    try:
+        return validation_record_from_dict(raw).is_validated
+    except (KeyError, TypeError, ValueError):
+        return False
+
+
+def _has_valid_trade_plan(obj: ResearchObject) -> bool:
+    raw = obj.metadata.get("trade_plan")
+    if not isinstance(raw, dict):
+        return False
+    try:
+        plan = trade_plan_from_dict(raw)
+    except (KeyError, TypeError, ValueError):
+        return False
+    return plan.ticker.strip().upper() == obj.security.ticker
+
+
 def evaluate_trade_readiness(obj: ResearchObject) -> GateResult:
     """Governance gate only; this is not a buy/sell signal.
 
-    TRADE_READY is allowed only when research has explicit invalidation criteria,
-    at least one factual/evidentiary item, a defined base case, non-null confidence,
-    and metadata proving the validation stage has reached VALIDATED.
+    TRADE_READY requires explicit thesis invalidation, sourced factual evidence,
+    a complete Backtest -> Walk Forward -> Shadow/Paper validation record that has
+    an acceptance reference, and a structured trade plan. No single metadata flag
+    can bypass this gate.
     """
 
     evidence_kinds = {item.kind for item in obj.security.evidence}
-    validation_raw = str(obj.metadata.get("validation_status", ""))
 
     checks = {
         "state_is_validation": obj.state is DecisionState.VALIDATION,
@@ -38,7 +60,8 @@ def evaluate_trade_readiness(obj: ResearchObject) -> GateResult:
         "has_base_case": bool(obj.security.thesis.base_case.strip()),
         "has_invalidation_conditions": bool(obj.security.thesis.invalidation_conditions),
         "has_confidence": obj.security.thesis.confidence is not None,
-        "validation_status_is_validated": validation_raw == ValidationStatus.VALIDATED.value,
+        "has_valid_validation_record": _has_valid_validation_record(obj),
+        "has_valid_trade_plan": _has_valid_trade_plan(obj),
     }
 
     labels = {
@@ -47,7 +70,8 @@ def evaluate_trade_readiness(obj: ResearchObject) -> GateResult:
         "has_base_case": "thesis base_case is required",
         "has_invalidation_conditions": "at least one invalidation condition is required",
         "has_confidence": "thesis confidence is required",
-        "validation_status_is_validated": "04 Backtest & Validation acceptance must set validation_status=VALIDATED",
+        "has_valid_validation_record": "Backtest, Walk Forward and Shadow/Paper must all PASS and have an acceptance reference",
+        "has_valid_trade_plan": "a structured trade plan matching the ticker is required",
     }
     reasons = [labels[key] for key, value in checks.items() if not value]
     return GateResult(passed=all(checks.values()), checks=checks, reasons=reasons)
