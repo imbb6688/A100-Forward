@@ -2,15 +2,6 @@ name: A100 IROS Enrichment Live Validation
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - feature/iros-enrichment-orchestrator-v1
-    paths:
-      - 'a100_iros/**'
-      - 'scripts/iros_enrich.py'
-      - 'tests/test_iros_enrichment.py'
-      - '.github/workflows/iros-enrichment-live-validation.yml'
-
 permissions:
   contents: read
 
