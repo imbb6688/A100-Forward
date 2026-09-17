@@ -4,6 +4,7 @@ import argparse
 import json
 import os
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -60,7 +61,30 @@ def main() -> None:
     if args.watchlist:
         targets.extend(targets_from_watchlist(_watchlist_rows(_read_json(Path(args.watchlist)))))
     if not targets:
-        raise SystemExit("no Frozen V7 or Watchlist enrichment targets found")
+        generated_at = datetime.now(timezone.utc).isoformat()
+        summary = {
+            "schema_version": "A100-IROS-ENRICHMENT-RUN-v1",
+            "generated_at": generated_at,
+            "as_of": args.as_of,
+            "results": [],
+            "complete": 0,
+            "failed": 0,
+            "status": "SKIPPED_NO_TARGETS",
+            "governance": {
+                "research_only": True,
+                "modifies_frozen_v7": False,
+                "generates_orders": False,
+                "auto_promotes_state": False,
+            },
+        }
+        root = Path(args.root)
+        root.mkdir(parents=True, exist_ok=True)
+        target = root / "latest_enrichment_run.json"
+        temp = target.with_suffix(".json.tmp")
+        temp.write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
+        temp.replace(target)
+        print(json.dumps(summary, ensure_ascii=False, indent=2))
+        return
 
     orchestrator = IROSEnrichmentOrchestrator(
         repository=ResearchRepository(args.root),
