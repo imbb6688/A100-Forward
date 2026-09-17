@@ -1,0 +1,97 @@
+name: A100 IROS Enrichment Live Validation
+
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+
+jobs:
+  live-validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run full unit tests
+        run: python -m unittest discover -s tests -v
+      - name: Prepare isolated runtime
+        run: |
+          sudo mkdir -p /mnt/data/A100_complete_results /mnt/data/A100_v5_results /mnt/data/A100_v6_results /mnt/data/A100_v7_results /mnt/data/forward /mnt/data/iros_research
+          sudo chown -R $USER:$USER /mnt/data
+          cp scripts/*.py /mnt/data/
+      - name: Download real HiThink market dumps
+        env:
+          HITHINK_FINANCE_API_KEY: ${{ secrets.HITHINK_FINANCE_API_KEY }}
+        run: python scripts/download_hithink.py
+      - name: Rebuild Frozen V7 research chain
+        run: |
+          cd /mnt/data
+          python a100_canonical_prep.py
+          python a100_v5_pit_proxy.py
+          python a100_v6_feature_prep_forward.py
+          python a100_v6_train_score_forward.py
+          python a100_v7_forward_ranker.py
+          python a100_forward_live.py
+      - name: Create validation watchlist
+        run: |
+          printf '%s\n' '[{"ticker":"600519.SH","company_name":"Kweichow Moutai"}]' > /mnt/data/iros_watchlist.json
+      - name: Build real Security Research Files
+        env:
+          HITHINK_FINANCE_API_KEY: ${{ secrets.HITHINK_FINANCE_API_KEY }}
+        run: |
+          python scripts/iros_enrich.py \
+            --watchlist /mnt/data/iros_watchlist.json \
+            --root /mnt/data/iros_research \
+            > /mnt/data/iros_research/run.log
+      - name: Validate enrichment contract
+        run: |
+          test -s /mnt/data/iros_research/latest_enrichment_run.json
+          test -s /mnt/data/iros_research/security_files/600519-SH.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path('/mnt/data/iros_research')
+          run = json.loads((root / 'latest_enrichment_run.json').read_text(encoding='utf-8'))
+          security = json.loads((root / 'security_files/600519-SH.json').read_text(encoding='utf-8'))
+          assert run['failed'] == 0
+          assert run['complete'] >= 1
+          assert security['schema_version'] == 'A100-IROS-SECURITY-RESEARCH-FILE-v1'
+          assert security['adapter_status']['market'] == 'COMPLETE'
+          assert security['adapter_status']['fundamentals'] == 'COMPLETE'
+          assert security['adapter_status']['valuation'] == 'COMPLETE'
+          assert security['adapter_status']['events'] == 'COMPLETE'
+          assert security['governance']['research_only'] is True
+          assert security['governance']['modifies_frozen_v7'] is False
+          assert security['governance']['generates_orders'] is False
+          assert security['research_object']['security']['fundamentals']
+          assert security['research_object']['security']['valuation']
+          assert security['raw_context']['events']
+          print(json.dumps({
+              'as_of': run['as_of'],
+              'complete': run['complete'],
+              'failed': run['failed'],
+              'ticker': security['ticker'],
+              'snapshot_id': security['snapshot_id'],
+              'adapter_status': security['adapter_status'],
+          }, ensure_ascii=False, indent=2))
+          PY
+      - name: Upload sanitized enrichment artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: iros-enrichment-live-validation
+          path: |
+            /mnt/data/iros_research/latest_enrichment_run.json
+            /mnt/data/iros_research/security_files/*.json
+            /mnt/data/iros_research/security_files/history/**/*.json
+            /mnt/data/iros_research/objects/*.json
+            /mnt/data/iros_research/snapshots/**/*.json
+            /mnt/data/iros_research/run.log
+          if-no-files-found: error
+          retention-days: 7

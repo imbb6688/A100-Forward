@@ -15,6 +15,14 @@ from .assessments import (
     weighted_research_score,
 )
 from .evidence import EvidenceLedger, EvidenceLedgerEntry, EvidenceStatus, evidence_fingerprint
+from .enrichment import (
+    EnrichmentResult,
+    EnrichmentTarget,
+    IROSEnrichmentOrchestrator,
+    SecurityResearchFile,
+    targets_from_frozen_signal,
+    targets_from_watchlist,
+)
 from .gates import GateResult, evaluate_trade_readiness, promote_to_trade_ready
 from .memory import ResearchSnapshot, ThesisDelta, compare_snapshots
 from .models import (
@@ -46,6 +54,12 @@ from .validation import (
 )
 
 __all__ = [
+    "EnrichmentTarget",
+    "EnrichmentResult",
+    "SecurityResearchFile",
+    "IROSEnrichmentOrchestrator",
+    "targets_from_frozen_signal",
+    "targets_from_watchlist",
     "DecisionState",
     "EvidenceItem",
     "EvidenceKind",
