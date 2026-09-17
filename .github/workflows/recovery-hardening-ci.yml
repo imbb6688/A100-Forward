@@ -1,0 +1,33 @@
+name: Recovery Hardening CI
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/**'
+      - 'tests/**'
+      - '.github/workflows/a100-forward.yml'
+      - '.github/workflows/recovery-hardening-ci.yml'
+      - 'requirements.txt'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Compile Python
+        run: python -m compileall -q scripts tests a100_iros
+      - name: Frozen preflight
+        run: python scripts/preflight.py
+      - name: Regression tests
+        run: python -m unittest discover -s tests -v
