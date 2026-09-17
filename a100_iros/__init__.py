@@ -12,6 +12,7 @@ from .models import (
     Thesis,
     ThesisStance,
 )
+from .storage import SCHEMA_VERSION, load_research_object, save_research_object
 
 __all__ = [
     "DecisionState",
@@ -21,4 +22,7 @@ __all__ = [
     "SecurityResearchCard",
     "Thesis",
     "ThesisStance",
+    "SCHEMA_VERSION",
+    "load_research_object",
+    "save_research_object",
 ]
