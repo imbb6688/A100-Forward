@@ -9,7 +9,7 @@ on:
       - 'a100_iros/**'
       - 'tests/test_iros_*.py'
       - 'docs/IROS_*.md'
-      - 'examples/iros_*.py'
+      - 'examples/**'
       - 'README.md'
       - '.github/workflows/iros-ci.yml'
   pull_request:
@@ -17,7 +17,7 @@ on:
       - 'a100_iros/**'
       - 'tests/test_iros_*.py'
       - 'docs/IROS_*.md'
-      - 'examples/iros_*.py'
+      - 'examples/**'
       - 'README.md'
       - '.github/workflows/iros-ci.yml'
 
@@ -53,6 +53,6 @@ jobs:
 
       - name: End-to-end research example
         run: |
-          python examples/iros_end_to_end.py > /tmp/iros-demo-output.txt
+          python -m examples.iros_end_to_end > /tmp/iros-demo-output.txt
           test -s state/iros-demo/objects/SEC-DEMO-001.json
           test -s state/iros-demo/snapshots/SEC-DEMO-001/demo-final.json
