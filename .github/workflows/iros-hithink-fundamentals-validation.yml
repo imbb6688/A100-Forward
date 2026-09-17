@@ -40,27 +40,30 @@ jobs:
           IROS_PROBE_TICKER: 600519.SH
           IROS_PROBE_PERIOD: annual
           IROS_PROBE_LIMIT: '5'
+          IROS_PROBE_OUTPUT: iros_fundamentals_probe.json
         run: python scripts/iros_hithink_fundamentals_probe.py
 
       - name: Validate sanitized probe contract
         run: |
-          test -s /mnt/data/iros_fundamentals_probe.json
+          test -s iros_fundamentals_probe.json
           python - <<'PY'
           import json
           from pathlib import Path
-          p = json.loads(Path('/mnt/data/iros_fundamentals_probe.json').read_text(encoding='utf-8'))
+          p = json.loads(Path('iros_fundamentals_probe.json').read_text(encoding='utf-8'))
           assert p['ticker'] == '600519.SH'
           assert len(p['income']) >= 1
           assert len(p['balance_sheet']) >= 1
           assert len(p['cash_flow']) >= 1
-          assert len(p['indicators']) >= 1
+          assert isinstance(p['indicators'], dict) and p['indicators']
           assert isinstance(p['valuation'], dict)
+          assert p['indicator_report']
           print(json.dumps({
               'ticker': p['ticker'],
+              'indicator_report': p['indicator_report'],
               'income_rows': len(p['income']),
               'balance_sheet_rows': len(p['balance_sheet']),
               'cash_flow_rows': len(p['cash_flow']),
-              'indicator_rows': len(p['indicators']),
+              'indicator_fields': sorted(p['indicators'].keys()),
               'valuation_fields': sorted(p['valuation'].keys()),
               'latest_report_date_ms': p['income'][0].get('report_date_ms'),
               'latest_period_end_ms': p['income'][0].get('period_end_ms'),
@@ -71,5 +74,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: iros-hithink-fundamentals-probe
-          path: /mnt/data/iros_fundamentals_probe.json
+          path: iros_fundamentals_probe.json
           retention-days: 7
