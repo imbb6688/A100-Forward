@@ -10,6 +10,7 @@ on:
       - 'tests/test_iros_*.py'
       - 'docs/IROS_*.md'
       - 'examples/iros_*.py'
+      - 'README.md'
       - '.github/workflows/iros-ci.yml'
   pull_request:
     paths:
@@ -17,6 +18,7 @@ on:
       - 'tests/test_iros_*.py'
       - 'docs/IROS_*.md'
       - 'examples/iros_*.py'
+      - 'README.md'
       - '.github/workflows/iros-ci.yml'
 
 permissions:
