@@ -54,11 +54,18 @@ def presigned(kind: str) -> str:
 
 
 def valid_parquet(path: Path, min_bytes: int = 1024) -> bool:
+    """Decode every record batch before promoting a downloaded object."""
     if not path.exists() or path.stat().st_size < min_bytes:
         return False
     try:
         pf = pq.ParquetFile(path)
-        return pf.metadata is not None and pf.metadata.num_rows > 0
+        if pf.metadata is None or pf.metadata.num_rows <= 0:
+            return False
+        decoded_rows = 0
+        for batch in pf.iter_batches(batch_size=65536):
+            batch.validate(full=True)
+            decoded_rows += batch.num_rows
+        return decoded_rows == pf.metadata.num_rows
     except Exception:
         return False
 
@@ -68,6 +75,9 @@ def fetch(kind: str, dest: Path) -> int:
     last_error = None
 
     for attempt in range(1, 9):
+        # A renewed signed URL may identify a newer dump. Never splice it onto
+        # bytes fetched with a previous URL.
+        tmp.unlink(missing_ok=True)
         try:
             url = presigned(kind)
             cmd = [
@@ -91,7 +101,13 @@ def fetch(kind: str, dest: Path) -> int:
                 url,
             ]
             print(f"{kind}: curl attempt {attempt}; existing={tmp.stat().st_size if tmp.exists() else 0}", flush=True)
-            completed = subprocess.run(cmd, check=False)
+            completed = subprocess.run(
+                cmd,
+                check=False,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
             if completed.returncode != 0:
                 # A completed partial file can cause a range-related curl error on retry.
                 # Accept it only if it is already a readable parquet file.
@@ -104,11 +120,14 @@ def fetch(kind: str, dest: Path) -> int:
             return int(dest.stat().st_size)
         except Exception as exc:
             last_error = exc
-            print(f"{kind}: attempt {attempt} failed: {exc}", flush=True)
+            tmp.unlink(missing_ok=True)
+            print(f"{kind}: attempt {attempt} failed ({type(exc).__name__})", flush=True)
             if attempt < 8:
                 time.sleep(min(10 * attempt, 60))
 
-    raise RuntimeError(f"{kind}: failed after retries: {last_error}")
+    raise RuntimeError(
+        f"{kind}: failed after retries ({type(last_error).__name__ if last_error else 'unknown'})"
+    ) from None
 
 
 def require_columns(pf: pq.ParquetFile, required: set[str], label: str) -> None:
