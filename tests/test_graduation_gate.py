@@ -26,7 +26,8 @@ class GraduationGateTests(unittest.TestCase):
         (root / "state" / "equity_curve.csv").write_text("date\n" + "\n".join(f"2026-01-{i:02d}" for i in range(1, 61)))
         trades = "pnl\n" + "\n".join(["2"] * 20 + ["-1"] * 10)
         (root / "state" / "trade_log.csv").write_text(trades)
-        (root / "state" / "autonomous_journal.csv").write_text("mode\nPAPER\n")
+        dates = [f"2026-01-{i:02d}" for i in range(1, 61)]
+        (root / "state" / "autonomous_journal.csv").write_text("date,mode\n" + "\n".join(f"{d},PAPER" for d in dates))
         return tmp, root
 
     def test_current_evidence_fails_closed(self):

@@ -98,7 +98,12 @@ def validate_walk_forward(policy: Mapping[str, Any], report: Mapping[str, Any]) 
     folds = folds if isinstance(folds, list) else []
     pfs = [_finite(f.get("profit_factor")) for f in folds if isinstance(f, Mapping)]
     pfs = [x for x in pfs if x is not None]
-    drawdowns = [abs(_finite(f.get("max_drawdown")) or float("inf")) for f in folds if isinstance(f, Mapping)]
+    drawdowns = []
+    for fold in folds:
+        if not isinstance(fold, Mapping):
+            continue
+        value = _finite(fold.get("max_drawdown"))
+        drawdowns.append(abs(value) if value is not None else 999.0)
     trades = sum(int(f.get("trades") or 0) for f in folds if isinstance(f, Mapping))
     profitable = sum(1 for f in folds if isinstance(f, Mapping) and (_finite(f.get("net_return")) or 0) > 0)
     profitable_ratio = profitable / len(folds) if folds else 0.0
@@ -138,13 +143,17 @@ def validate_paper(policy: Mapping[str, Any], state_dir: Path) -> List[Check]:
     pf = gains / losses if losses > 0 else (999.0 if gains > 0 else 0.0)
     max_dd = abs(_finite(state.get("max_drawdown")) or 0.0)
     duplicate_sessions = len(dates) - len(unique_dates)
-    mode_ok = all((row.get("mode") or "SHADOW") in {"SHADOW", "PAPER"} for row in _read_csv(state_dir / "autonomous_journal.csv"))
+    journal = _read_csv(state_dir / "autonomous_journal.csv")
+    journal_dates = {row.get("date") for row in journal if row.get("date")}
+    state_alignment_gaps = len(set(unique_dates).symmetric_difference(journal_dates))
+    mode_ok = all((row.get("mode") or "SHADOW") in {"SHADOW", "PAPER"} for row in journal)
     return [
         _check("paper_sessions", len(unique_dates) >= int(cfg["min_sessions"]), len(unique_dates), cfg["min_sessions"], "PAPER_TOO_SHORT"),
         _check("paper_closed_trades", closed >= int(cfg["min_closed_trades"]), closed, cfg["min_closed_trades"], "PAPER_TOO_FEW_TRADES"),
         _check("paper_profit_factor", pf >= float(cfg["min_profit_factor"]), pf, cfg["min_profit_factor"], "PAPER_PF_LOW"),
         _check("paper_max_drawdown", max_dd <= float(cfg["max_drawdown"]), max_dd, cfg["max_drawdown"], "PAPER_DRAWDOWN_TOO_HIGH"),
         _check("paper_state_unique_sessions", duplicate_sessions <= int(cfg["max_state_gap_sessions"]), duplicate_sessions, cfg["max_state_gap_sessions"], "PAPER_STATE_DUPLICATE"),
+        _check("paper_state_aligned", state_alignment_gaps <= int(cfg["max_state_gap_sessions"]), state_alignment_gaps, cfg["max_state_gap_sessions"], "PAPER_STATE_GAP"),
         _check("paper_no_broker_execution", mode_ok, mode_ok, True, "NON_PAPER_EXECUTION_DETECTED"),
     ]
 
