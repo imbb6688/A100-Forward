@@ -1,0 +1,83 @@
+name: A100 IROS HiThink Live Validation
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  live-validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run full unit tests
+        run: python -m unittest discover -s tests -v
+
+      - name: Prepare isolated runtime
+        run: |
+          sudo mkdir -p /mnt/data/A100_complete_results /mnt/data/A100_v5_results /mnt/data/A100_v6_results /mnt/data/A100_v7_results /mnt/data/forward /mnt/data/iros_live
+          sudo chown -R $USER:$USER /mnt/data
+          cp scripts/*.py /mnt/data/
+
+      - name: Download real HiThink full-market data
+        env:
+          HITHINK_FINANCE_API_KEY: ${{ secrets.HITHINK_FINANCE_API_KEY }}
+        run: python scripts/download_hithink.py
+
+      - name: Rebuild Frozen V7 research chain
+        run: |
+          cd /mnt/data
+          python a100_canonical_prep.py
+          python a100_v5_pit_proxy.py
+          python a100_v6_feature_prep_forward.py
+          python a100_v6_train_score_forward.py
+          python a100_v7_forward_ranker.py
+          python a100_forward_live.py
+
+      - name: Build IROS live research bundle
+        run: |
+          python scripts/iros_hithink_live.py > /mnt/data/iros_live/run.log
+          test -s /mnt/data/iros_live/live_bundle.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path('/mnt/data/iros_live/live_bundle.json')
+          b = json.loads(p.read_text(encoding='utf-8'))
+          assert b['governance']['research_only'] is True
+          assert b['governance']['modifies_frozen_v7'] is False
+          assert b['manifest']['full_market'] is True
+          assert b['manifest']['data_valid'] is True
+          assert b['trade_date']
+          print(json.dumps({
+              'trade_date': b['trade_date'],
+              'latest_rows': b['manifest']['latest_rows'],
+              'symbols': b['manifest']['symbols'],
+              'market_regime': b['market_regime'],
+              'frozen_v7': b['frozen_v7'],
+              'research_object_count': len(b['research_objects']),
+          }, ensure_ascii=False, indent=2))
+          PY
+
+      - name: Upload sanitized live IROS bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: iros-hithink-live-bundle
+          path: |
+            /mnt/data/iros_live/live_bundle.json
+            /mnt/data/iros_live/objects/*.json
+            /mnt/data/iros_live/run.log
+          if-no-files-found: error
+          retention-days: 7
