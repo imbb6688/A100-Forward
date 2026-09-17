@@ -70,6 +70,39 @@ class ResearchPipeline:
         self.obj.security.industry_context = assessment.to_dict()
         self._record("apply_industry_assessment", {"industry": assessment.industry})
 
+    def set_fundamentals(self, data: Dict[str, Any]) -> None:
+        self.ensure_researching()
+        self.obj.security.fundamentals = dict(data)
+        self._record("set_fundamentals", {"fields": sorted(self.obj.security.fundamentals)})
+
+    def set_valuation(self, data: Dict[str, Any]) -> None:
+        self.ensure_researching()
+        self.obj.security.valuation = dict(data)
+        self._record("set_valuation", {"fields": sorted(self.obj.security.valuation)})
+
+    def set_technical_structure(self, data: Dict[str, Any]) -> None:
+        self.ensure_researching()
+        self.obj.security.technical_structure = dict(data)
+        self._record("set_technical_structure", {"fields": sorted(self.obj.security.technical_structure)})
+
+    def set_positioning(self, data: Dict[str, Any]) -> None:
+        self.ensure_researching()
+        self.obj.security.positioning = dict(data)
+        self._record("set_positioning", {"fields": sorted(self.obj.security.positioning)})
+
+    def set_risks(self, risks: Iterable[str]) -> None:
+        self.ensure_researching()
+        normalized: List[str] = []
+        seen = set()
+        for risk in risks:
+            value = " ".join(str(risk).split()).strip()
+            key = value.lower()
+            if value and key not in seen:
+                normalized.append(value)
+                seen.add(key)
+        self.obj.security.risks = normalized
+        self._record("set_risks", {"count": len(normalized)})
+
     def add_event(self, event: EventAssessment) -> None:
         self.ensure_researching()
         payload = event.to_dict()
