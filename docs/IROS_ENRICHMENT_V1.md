@@ -73,6 +73,18 @@ The orchestrator:
 - does not automatically promote decision state to Candidate, Validation or Trade Ready;
 - preserves the required validation path: Backtest → Walk Forward → Shadow/Paper → Acceptance.
 
+## Daily integration
+
+The production A100 Forward workflow runs enrichment immediately after the Frozen V7 research chain:
+
+- Frozen V7 Top-2 and `config/iros_watchlist.json` are combined and deduplicated;
+- no-target sessions are recorded as `SKIPPED_NO_TARGETS`;
+- enrichment errors are isolated from Forward Account, Shadow and Pages;
+- only a fully successful enrichment run receives a publish marker and is copied to `state/iros_research`;
+- the next daily run restores that state before refreshing the same stable research files.
+
+This integration persists research memory but never changes Frozen V7 signals or execution state.
+
 ## Command
 
 ```bash
