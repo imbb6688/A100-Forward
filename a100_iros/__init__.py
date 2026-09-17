@@ -36,6 +36,14 @@ from .risk import (
     summarize_portfolio,
 )
 from .storage import SCHEMA_VERSION, load_research_object, save_research_object
+from .trade_plan import TradePlan, trade_plan_from_dict
+from .validation import (
+    StageOutcome,
+    ValidationRecord,
+    ValidationStage,
+    ValidationStageResult,
+    validation_record_from_dict,
+)
 
 __all__ = [
     "DecisionState",
@@ -75,4 +83,11 @@ __all__ = [
     "RiskBudgetPosition",
     "summarize_portfolio",
     "size_position_by_risk_budget",
+    "ValidationStage",
+    "StageOutcome",
+    "ValidationStageResult",
+    "ValidationRecord",
+    "validation_record_from_dict",
+    "TradePlan",
+    "trade_plan_from_dict",
 ]
