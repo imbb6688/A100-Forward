@@ -1,3 +1,4 @@
 date,mode,regime,risk_gate,target_exposure_pct,allocations,rejections,equity,drawdown,loss_streak
 2026-09-15,SHADOW,DEFENSIVE,PASS,0.0,0,0,1000000.0,0.0,0
 2026-09-16,SHADOW,DEFENSIVE,PASS,0.0,0,0,1000000.0,0.0,0
+2026-09-17,SHADOW,DEFENSIVE,PASS,0.0,0,0,1000000.0,0.0,0
