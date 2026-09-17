@@ -4,9 +4,6 @@ import tempfile
 import unittest
 from pathlib import Path
 
-import pyarrow as pa
-import pyarrow.parquet as pq
-
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "scripts"
 
@@ -67,6 +64,11 @@ class SourceContractTests(unittest.TestCase):
         self.assertIn("stderr=subprocess.PIPE", source)
 
     def test_valid_parquet_decodes_complete_file(self):
+        try:
+            import pyarrow as pa
+            import pyarrow.parquet as pq
+        except ModuleNotFoundError:
+            self.skipTest("pyarrow is exercised by the dependency-installed recovery CI")
         source_path = SCRIPTS / "download_hithink.py"
         tree = ast.parse(source_path.read_text(encoding="utf-8"), filename=str(source_path))
         function = next(
