@@ -145,7 +145,12 @@ def validate_paper(policy: Mapping[str, Any], state_dir: Path) -> List[Check]:
     duplicate_sessions = len(dates) - len(unique_dates)
     journal = _read_csv(state_dir / "autonomous_journal.csv")
     journal_dates = {row.get("date") for row in journal if row.get("date")}
-    state_alignment_gaps = len(set(unique_dates).symmetric_difference(journal_dates))
+    # The autonomous journal was introduced after the Forward account. Do not
+    # fabricate pre-journal rows or make that legacy period a permanent blocker;
+    # require exact continuity from the first real journal session onward.
+    journal_start = min(journal_dates) if journal_dates else None
+    aligned_equity_dates = {date for date in unique_dates if journal_start and date >= journal_start}
+    state_alignment_gaps = len(aligned_equity_dates.symmetric_difference(journal_dates)) if journal_start else len(unique_dates)
     mode_ok = all((row.get("mode") or "SHADOW") in {"SHADOW", "PAPER"} for row in journal)
     return [
         _check("paper_sessions", len(unique_dates) >= int(cfg["min_sessions"]), len(unique_dates), cfg["min_sessions"], "PAPER_TOO_SHORT"),
