@@ -2,14 +2,6 @@ name: A100 IROS HiThink Fundamentals Validation
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - feature/iros-hithink-fundamentals-v1
-    paths:
-      - 'a100_iros/hithink_fundamentals.py'
-      - 'scripts/iros_hithink_fundamentals_probe.py'
-      - 'tests/test_iros_hithink_fundamentals.py'
-      - '.github/workflows/iros-hithink-fundamentals-validation.yml'
 
 permissions:
   contents: read
