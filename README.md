@@ -11,8 +11,10 @@ IROS does **not** modify Frozen V7, does not retune V7 with forward data, and do
 See:
 
 - `docs/IROS_V1.md` — v1 architecture and governance contract.
+- `docs/IROS_ENRICHMENT_V1.md` — persistent Security Research File orchestration.
 - `examples/iros_end_to_end.py` — synthetic end-to-end example.
 - `.github/workflows/iros-ci.yml` — isolated IROS validation workflow.
+- `scripts/iros_enrich.py` — enrich Frozen V7/Watchlist securities with real HiThink market, industry, fundamentals, valuation and event context.
 
 ## What it does
 
