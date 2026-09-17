@@ -1,0 +1,40 @@
+name: A100 IROS CI
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'a100_iros/**'
+      - 'tests/test_iros_*.py'
+      - 'docs/IROS_*.md'
+      - '.github/workflows/iros-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Compile IROS package
+        run: python -m compileall -q a100_iros
+
+      - name: Run IROS and existing policy unit tests
+        run: python -m unittest discover -s tests -v
+
+      - name: CLI smoke test
+        run: |
+          tmpdir="$(mktemp -d)"
+          python -m a100_iros --root "$tmpdir" new SEC-SMOKE-001 000001.SZ --company Smoke
+          python -m a100_iros --root "$tmpdir" snapshot SEC-SMOKE-001 --snapshot-id s1
+          python -m a100_iros --root "$tmpdir" show SEC-SMOKE-001
+          python -m a100_iros --root "$tmpdir" snapshots SEC-SMOKE-001
