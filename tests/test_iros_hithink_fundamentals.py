@@ -9,42 +9,65 @@ from a100_iros.models import ResearchObject, SecurityResearchCard
 
 
 class HiThinkFundamentalsTests(unittest.TestCase):
-    def test_fetches_all_financial_modules_and_valuation(self) -> None:
+    def test_fetches_statements_indicator_report_and_valuation(self) -> None:
         session = Mock()
         responses = []
-        for i in range(5):
+
+        for i in range(3):
             response = Mock()
             response.raise_for_status.return_value = None
-            if i < 4:
-                response.json.return_value = {
-                    "code": 0,
-                    "data": {
-                        "item": [
-                            {
-                                "thscode": "600519.SH",
-                                "report_date_ms": 1700000000000 + i,
-                                "period_end_ms": 1699999990000,
-                            }
-                        ]
-                    },
-                }
-            else:
-                response.json.return_value = {
-                    "code": 0,
-                    "data": {"item": [{"thscode": "600519.SH", "pe_ttm": 20.0}]},
-                }
+            response.json.return_value = {
+                "code": 0,
+                "data": {
+                    "item": [
+                        {
+                            "thscode": "600519.SH",
+                            "fiscal_year": 2025,
+                            "fiscal_period": "FY",
+                            "report_date_ms": 1700000000000 + i,
+                            "period_end_ms": 1767110400000,
+                        }
+                    ]
+                },
+            }
             responses.append(response)
+
+        indicator_response = Mock()
+        indicator_response.raise_for_status.return_value = None
+        indicator_response.json.return_value = {
+            "code": 0,
+            "data": {
+                "thscode": "600519.SH",
+                "report": "2025-4",
+                "roe": 0.31,
+            },
+        }
+        responses.append(indicator_response)
+
+        valuation_response = Mock()
+        valuation_response.raise_for_status.return_value = None
+        valuation_response.json.return_value = {
+            "code": 0,
+            "data": {"item": [{"thscode": "600519.SH", "pe_ttm": 20.0}]},
+        }
+        responses.append(valuation_response)
         session.get.side_effect = responses
 
         client = HiThinkFundamentalsClient("x", session=session)
         bundle = client.financials("600519.sh", period="annual", limit=5)
         self.assertEqual(bundle.ticker, "600519.SH")
+        self.assertEqual(bundle.indicator_report, "2025-4")
         self.assertEqual(len(bundle.income), 1)
         self.assertEqual(len(bundle.balance_sheet), 1)
         self.assertEqual(len(bundle.cash_flow), 1)
-        self.assertEqual(len(bundle.indicators), 1)
+        self.assertEqual(bundle.indicators["roe"], 0.31)
         self.assertEqual(bundle.valuation["pe_ttm"], 20.0)
         self.assertEqual(session.get.call_count, 5)
+
+        indicator_call = session.get.call_args_list[3]
+        self.assertEqual(indicator_call.kwargs["params"]["report"], "2025-4")
+        self.assertNotIn("period", indicator_call.kwargs["params"])
+        self.assertNotIn("limit", indicator_call.kwargs["params"])
 
         obj = ResearchObject(
             research_id="SEC-600519-TEST",
@@ -52,8 +75,9 @@ class HiThinkFundamentalsTests(unittest.TestCase):
         )
         enrich_research_object_with_hithink_fundamentals(obj, bundle)
         self.assertEqual(obj.security.fundamentals["source"], "HiThink Financial-API")
+        self.assertEqual(obj.security.fundamentals["indicator_report"], "2025-4")
         self.assertEqual(obj.security.valuation["snapshot"]["pe_ttm"], 20.0)
-        self.assertEqual(obj.security.fundamentals["latest_report_date_ms"], 1700000000003)
+        self.assertEqual(obj.security.fundamentals["latest_report_date_ms"], 1700000000002)
         self.assertTrue(obj.security.evidence)
 
     def test_rejects_mismatched_ticker(self) -> None:
