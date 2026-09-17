@@ -9,12 +9,14 @@ on:
       - 'a100_iros/**'
       - 'tests/test_iros_*.py'
       - 'docs/IROS_*.md'
+      - 'examples/iros_*.py'
       - '.github/workflows/iros-ci.yml'
   pull_request:
     paths:
       - 'a100_iros/**'
       - 'tests/test_iros_*.py'
       - 'docs/IROS_*.md'
+      - 'examples/iros_*.py'
       - '.github/workflows/iros-ci.yml'
 
 permissions:
@@ -46,3 +48,9 @@ jobs:
           python -m a100_iros --root "$tmpdir" snapshot SEC-SMOKE-001 --snapshot-id s1
           python -m a100_iros --root "$tmpdir" show SEC-SMOKE-001
           python -m a100_iros --root "$tmpdir" snapshots SEC-SMOKE-001
+
+      - name: End-to-end research example
+        run: |
+          python examples/iros_end_to_end.py > /tmp/iros-demo-output.txt
+          test -s state/iros-demo/objects/SEC-DEMO-001.json
+          test -s state/iros-demo/snapshots/SEC-DEMO-001/demo-final.json
