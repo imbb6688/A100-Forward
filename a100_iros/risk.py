@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from math import floor
+from decimal import Decimal, ROUND_FLOOR
 from typing import Dict, List, Optional
 
 
@@ -132,6 +132,14 @@ class RiskBudgetPosition:
         }
 
 
+def _d(value: float | int) -> Decimal:
+    return Decimal(str(value))
+
+
+def _floor_int(value: Decimal) -> int:
+    return int(value.to_integral_value(rounding=ROUND_FLOOR))
+
+
 def size_position_by_risk_budget(
     *,
     account_equity: float,
@@ -144,6 +152,8 @@ def size_position_by_risk_budget(
     """Mechanical research helper, not an order generator.
 
     Position size is capped by both loss-at-invalidation budget and a notional cap.
+    Decimal arithmetic is used for the sizing path so ordinary quoted prices do not
+    lose a board lot because of binary floating-point representation error.
     """
     if account_equity <= 0:
         raise ValueError("account_equity must be positive")
@@ -158,24 +168,30 @@ def size_position_by_risk_budget(
     if not 0 < max_notional_fraction <= 1:
         raise ValueError("max_notional_fraction must be in (0, 1]")
 
-    per_share_risk = abs(float(entry_price) - float(invalidation_price))
-    max_risk_amount = float(account_equity) * float(risk_fraction)
-    risk_limited_shares = floor(max_risk_amount / per_share_risk)
-    notional_limited_shares = floor((float(account_equity) * float(max_notional_fraction)) / float(entry_price))
+    equity_d = _d(account_equity)
+    risk_fraction_d = _d(risk_fraction)
+    entry_d = _d(entry_price)
+    invalidation_d = _d(invalidation_price)
+    max_notional_fraction_d = _d(max_notional_fraction)
+
+    per_share_risk_d = abs(entry_d - invalidation_d)
+    max_risk_amount_d = equity_d * risk_fraction_d
+    risk_limited_shares = _floor_int(max_risk_amount_d / per_share_risk_d)
+    notional_limited_shares = _floor_int((equity_d * max_notional_fraction_d) / entry_d)
     raw_shares = max(0, min(risk_limited_shares, notional_limited_shares))
     lot_adjusted = (raw_shares // lot_size) * lot_size
-    notional = lot_adjusted * float(entry_price)
+    notional_d = _d(lot_adjusted) * entry_d
 
     return RiskBudgetPosition(
-        account_equity=round(float(account_equity), 6),
-        risk_fraction=float(risk_fraction),
-        entry_price=float(entry_price),
-        invalidation_price=float(invalidation_price),
-        per_share_risk=round(per_share_risk, 6),
-        max_risk_amount=round(max_risk_amount, 6),
+        account_equity=float(equity_d),
+        risk_fraction=float(risk_fraction_d),
+        entry_price=float(entry_d),
+        invalidation_price=float(invalidation_d),
+        per_share_risk=float(per_share_risk_d),
+        max_risk_amount=float(max_risk_amount_d),
         raw_shares=raw_shares,
         lot_size=lot_size,
         lot_adjusted_shares=lot_adjusted,
-        notional=round(notional, 6),
-        notional_fraction=round(notional / float(account_equity), 6),
+        notional=float(notional_d),
+        notional_fraction=float(notional_d / equity_d),
     )
