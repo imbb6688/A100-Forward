@@ -12,6 +12,7 @@ required=[
     "a100_v7_forward_ranker.py",
     "a100_forward_live.py",
     "a100_account_v1.py",
+    "a100_runtime_checks.py",
     "validate_publish.py",
 ]
 missing=[x for x in required if not (ROOT/x).exists()]
@@ -29,4 +30,22 @@ for n in ["a100_canonical_prep.py","a100_v5_pit_proxy.py","a100_v6_feature_prep_
         raise SystemExit(f"{n}: audited a100_io import missing")
     if "parquet_minread" in imports:
         raise SystemExit(f"{n}: stale parquet_minread import")
+downloader=ast.parse((ROOT/"download_hithink.py").read_text(encoding="utf-8"))
+definitions={node.name for node in downloader.body if isinstance(node,(ast.FunctionDef,ast.AsyncFunctionDef))}
+if not {"main","fetch","presigned","valid_parquet"} <= definitions:
+    raise SystemExit("download_hithink.py: downloader contract functions missing")
+entrypoints=[
+    node for node in downloader.body
+    if isinstance(node,ast.If)
+    and ast.dump(node.test)==ast.dump(ast.parse('__name__ == "__main__"',mode="eval").body)
+]
+if not any(
+    isinstance(node,ast.Call)
+    and isinstance(node.func,ast.Name)
+    and node.func.id=="main"
+    for guard in entrypoints
+    for node in ast.walk(guard)
+):
+    raise SystemExit("download_hithink.py: main entrypoint missing")
+
 print("A100 PRE-FLIGHT OK")
