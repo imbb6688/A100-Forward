@@ -2,6 +2,18 @@
 
 This repository runs the **frozen A100 V7 forward-test pipeline** after the China A-share close. It never exposes the HiThink API key to output files or Pages.
 
+## A100 Investment Research Operating System (IROS)
+
+The repository also contains **A100-IROS**, an isolated research-only operating layer for structured market, industry, security, event, thesis, validation and risk research.
+
+IROS does **not** modify Frozen V7, does not retune V7 with forward data, and does not generate broker orders. Research heuristics remain unvalidated until the formal Backtest → Walk Forward → Shadow/Paper evidence chain is complete and explicitly accepted.
+
+See:
+
+- `docs/IROS_V1.md` — v1 architecture and governance contract.
+- `examples/iros_end_to_end.py` — synthetic end-to-end example.
+- `.github/workflows/iros-ci.yml` — isolated IROS validation workflow.
+
 ## What it does
 
 1. Authenticates to HiThink Financial-API with the repository secret `HITHINK_FINANCE_API_KEY`.
@@ -34,10 +46,10 @@ Name exactly:
 Paste your HiThink key there. It will not be written to the repository or Pages.
 
 ### 4. Enable GitHub Pages
-Repository → **Settings → Pages → Build and deployment → Source: GitHub Actions**.
+GitHub repository → **Settings → Pages → Build and deployment → Source: GitHub Actions**.
 
 ### 5. Run once manually
-Repository → **Actions → A100 Forward Daily → Run workflow**.
+GitHub repository → **Actions → A100 Forward Daily → Run workflow**.
 
 The scheduled run is configured for **15:35 Asia/Shanghai, Monday–Friday**. This gives HiThink time to publish the daily dump and leaves ~10 minutes before the ChatGPT 15:45 A100 task.
 
