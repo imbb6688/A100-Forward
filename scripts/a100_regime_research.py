@@ -7,12 +7,16 @@ from a100_iros.regime_research import market_features,stock_features,forward_ret
 def load(path):
     p=Path(path)
     x=pd.read_parquet(p) if p.suffix.lower() in {".parquet",".pq"} else pd.read_csv(p)
-    aliases={"thscode":"symbol","trade_date":"date"}
+    aliases={"thscode":"symbol","ts_code":"symbol","trade_date":"date"}
     x=x.rename(columns={k:v for k,v in aliases.items() if k in x.columns})
     need={"symbol","date","open","high","low","close","volume"}
     miss=need-set(x.columns)
     if miss: raise ValueError(f"missing columns: {sorted(miss)}")
-    x["date"]=pd.to_datetime(x["date"])
+    # A100 canonical trade_date is integer microseconds; CSV/public inputs may be date strings.
+    if pd.api.types.is_numeric_dtype(x["date"]):
+        x["date"]=pd.to_datetime(x["date"],unit="us")
+    else:
+        x["date"]=pd.to_datetime(x["date"])
     return x.sort_values(["symbol","date"])
 
 def main():
