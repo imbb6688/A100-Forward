@@ -1,0 +1,24 @@
+{
+  "schema_version": "A100-Agentic-AI-Regime-v1",
+  "weights": {
+    "token_demand": 0.15,
+    "domestic_compute": 0.20,
+    "optical_interconnect": 0.15,
+    "semiconductor_equipment_materials": 0.20,
+    "robotics": 0.10,
+    "star100_relative_strength": 0.20
+  },
+  "monitoring_notes": {
+    "token_demand": "Agent adoption, inference/token usage, model/API demand and AI capex proxies",
+    "domestic_compute": "China AI accelerator/server/cluster demand and domestic substitution",
+    "optical_interconnect": "Optical modules, optical components, switch/interconnect demand",
+    "semiconductor_equipment_materials": "Domestic semiconductor equipment/material order and earnings breadth",
+    "robotics": "Humanoid/industrial robot orders, components and physical-AI adoption",
+    "star100_relative_strength": "STAR100 relative to STAR50 and CSI300 across 5d/20d/60d horizons"
+  },
+  "governance": {
+    "research_only": true,
+    "frozen_v7_unchanged": true,
+    "promotion_requires_backtest_walk_forward_shadow": true
+  }
+}
