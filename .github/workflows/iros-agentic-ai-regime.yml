@@ -60,6 +60,10 @@ jobs:
           cache: 'pip'
       - name: Install dependencies
         run: pip install -r requirements.txt
+      - name: Prepare real-data runtime
+        run: |
+          sudo mkdir -p /mnt/data
+          sudo chown -R $USER:$USER /mnt/data
       - name: Download validated full-market data
         env:
           HITHINK_FINANCE_API_KEY: ${{ secrets.HITHINK_FINANCE_API_KEY }}
