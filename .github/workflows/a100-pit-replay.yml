@@ -30,7 +30,7 @@ jobs:
       - name: Count candidate symbols
         id: count
         run: |
-          count=$(python -c "import pandas as pd; print(pd.read_csv('walk_forward_candidate_universe.csv').symbol.nunique())")
+          count=$(tail -n +2 walk_forward_candidate_universe.csv | cut -d, -f2 | sort -u | wc -l | tr -d ' ')
           echo "symbol_count=$count" >> "$GITHUB_OUTPUT"
           test "$count" -gt 4000
 
