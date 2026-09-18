@@ -59,20 +59,20 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: pit-candidate-manifest
-          path: /mnt/data/validation
+          path: /tmp/a100-pit/validation
       - name: Fetch one low-rate CNInfo industry shard
         run: |
           python scripts/a100_fetch_pit_history.py \
-            --root /mnt/data \
+            --root /tmp/a100-pit \
             --kind industry \
-            --symbols-file /mnt/data/validation/walk_forward_candidate_universe.csv \
+            --symbols-file /tmp/a100-pit/validation/walk_forward_candidate_universe.csv \
             --shard-index ${{ matrix.shard }} \
             --shard-count 18 \
             --industry-workers 1
       - uses: actions/upload-artifact@v4
         with:
           name: pit-industry-${{ matrix.shard }}
-          path: /mnt/data/pit/industry_membership_history.part-*.parquet
+          path: /tmp/a100-pit/pit/industry_membership_history.part-*.parquet
           retention-days: 7
 
   replay:
