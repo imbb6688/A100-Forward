@@ -1,6 +1,11 @@
 name: A100 Regime Historical Validation
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/regime-historical-validation.yml'
+      - 'a100_iros/regime_research.py'
+      - 'scripts/a100_regime_research.py'
 permissions:
   contents: read
 jobs:
@@ -9,8 +14,6 @@ jobs:
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v6
-        with:
-          ref: research/regime-rail-gs-v1
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
