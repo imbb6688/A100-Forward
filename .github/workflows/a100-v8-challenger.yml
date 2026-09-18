@@ -1,0 +1,64 @@
+name: A100 V8 Challenger Research
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'research/v8-adaptive-market-gate'
+    paths:
+      - 'scripts/a100_v8_challenger.py'
+      - 'tests/test_a100_v8_challenger.py'
+      - 'docs/A100_V8_CHALLENGER.md'
+      - '.github/workflows/a100-v8-challenger.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a100-v8-challenger-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      - run: pip install -r requirements.txt
+      - name: Unit tests
+        run: python -m unittest tests.test_a100_v8_challenger -v
+      - name: Prepare runtime
+        run: |
+          sudo mkdir -p /mnt/data/A100_complete_results /mnt/data/A100_v5_results /mnt/data/A100_v6_results /mnt/data/A100_v7_results /mnt/data/validation/v8_challenger
+          sudo chown -R $USER:$USER /mnt/data
+          cp scripts/*.py /mnt/data/
+      - name: Download validated HiThink history
+        env:
+          HITHINK_FINANCE_API_KEY: ${{ secrets.HITHINK_FINANCE_API_KEY }}
+        run: python scripts/download_hithink.py
+      - name: Rebuild frozen feature evidence
+        run: |
+          cd /mnt/data
+          python a100_canonical_prep.py
+          python a100_v5_pit_proxy.py
+          python a100_v6_feature_prep_forward.py
+          python a100_v6_train_score_forward.py
+          python a100_v7_forward_ranker.py
+      - name: Compare Frozen V7 and V8 challenger
+        run: |
+          python -m scripts.a100_v8_challenger \
+            --root /mnt/data \
+            --output-dir /mnt/data/validation/v8_challenger
+          test -s /mnt/data/validation/v8_challenger/v8_challenger_report.json
+          test -s /mnt/data/validation/v8_challenger/v8_challenger_selected.csv
+      - name: Upload research evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: a100-v8-challenger-evidence
+          path: /mnt/data/validation/v8_challenger/
+          if-no-files-found: error
+          retention-days: 30
