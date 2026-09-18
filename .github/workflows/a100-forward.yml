@@ -84,6 +84,7 @@ jobs:
         run: |
           python scripts/a100_v7_walk_forward_proxy.py
           test -s /mnt/data/validation/walk_forward_proxy_report.json
+          test -s /mnt/data/validation/walk_forward_candidate_universe.csv
 
       - name: Enrich IROS Security Research Files
         env:
@@ -165,6 +166,7 @@ jobs:
           cp /mnt/data/forward/autonomous/shadow_rejections.csv site/autonomous/shadow_rejections.csv
           cp /mnt/data/forward/graduation_gate.json site/graduation_gate.json
           cp /mnt/data/validation/walk_forward_proxy_report.json site/walk_forward_proxy_report.json
+          cp /mnt/data/validation/walk_forward_candidate_universe.csv site/walk_forward_candidate_universe.csv
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
