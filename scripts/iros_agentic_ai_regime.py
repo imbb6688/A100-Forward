@@ -4,9 +4,12 @@ import argparse
 import hashlib
 import json
 import os
+import sys
 import tempfile
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Mapping
+from zoneinfo import ZoneInfo
 
 from a100_iros.agentic_ai_inputs import build_market_proxy_payload, index_codes_from_config, load_regime_config
 from a100_iros.agentic_ai_regime import AgenticAIRegimeState, RegimeSignal, build_agentic_ai_regime
@@ -49,7 +52,14 @@ def _constituents(config: Mapping[str, Any], api_key: str) -> dict[str, list[str
     client = HiThinkContextClient(api_key)
     output: dict[str, list[str]] = {}
     for code in sorted(set(index_codes_from_config(config))):
-        rows = client.index_constituents(code)
+        try:
+            rows = client.index_constituents(code)
+        except Exception as exc:
+            print(
+                f"warning: constituent fallback unavailable for {code}: {type(exc).__name__}",
+                file=sys.stderr,
+            )
+            rows = []
         output[code] = sorted({
             str(row.get("thscode") or row.get("ts_code") or "").strip().upper()
             for row in rows if row.get("thscode") or row.get("ts_code")
@@ -58,11 +68,26 @@ def _constituents(config: Mapping[str, Any], api_key: str) -> dict[str, list[str
 
 
 def _validate_input(payload: Mapping[str, Any], config: Mapping[str, Any]) -> list[RegimeSignal]:
+    if payload.get("schema_version") != "A100-Agentic-AI-Regime-Input-v2":
+        raise ValueError("input schema_version is missing or unsupported")
     if payload.get("weights") != config.get("weights"):
         raise ValueError("input weights must exactly match the governed configuration")
     as_of = str(payload.get("as_of") or "")
     if not as_of:
         raise ValueError("input as_of is required")
+    try:
+        observed_date = date.fromisoformat(as_of)
+    except ValueError as exc:
+        raise ValueError("input as_of must be an ISO date") from exc
+    age_days = (datetime.now(ZoneInfo("Asia/Shanghai")).date() - observed_date).days
+    max_age_days = int(config["quality_gates"]["max_calendar_age_days"])
+    if age_days < 0 or age_days > max_age_days:
+        raise ValueError(f"input is stale or future-dated: as_of={as_of}, age_days={age_days}")
+    if not isinstance(payload.get("quality"), Mapping):
+        raise ValueError("input quality metadata is required")
+    provenance = payload.get("provenance")
+    if not isinstance(provenance, Mapping) or not provenance.get("source"):
+        raise ValueError("input provenance.source is required")
     rows = payload.get("signals")
     if not isinstance(rows, list):
         raise ValueError("input signals must be a list")

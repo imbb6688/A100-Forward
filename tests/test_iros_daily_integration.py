@@ -62,6 +62,8 @@ class IROSDailyIntegrationTests(unittest.TestCase):
         self.assertIn("--manifest /mnt/data/hithink_manifest.json", workflow)
         self.assertIn("previous valid state will remain unpublished", workflow)
         self.assertIn("git add state/iros-regime", workflow)
+        self.assertIn("timeout 10m python -m scripts.iros_agentic_ai_regime", workflow)
+        self.assertIn("if [ -s /mnt/data/state/iros-regime/latest.json ]; then", workflow)
         self.assertNotIn("python scripts/iros_agentic_ai_regime.py", workflow)
 
 

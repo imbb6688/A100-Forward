@@ -37,7 +37,9 @@ The command requires either a governed input JSON or both real daily data and it
 manifest. There is no empty-input default. Invalid weights, unknown buckets,
 missing provenance, date mismatch, stale data, or insufficient coverage terminate
 with a non-zero status. A failed daily run is not published over the prior valid
-snapshot.
+snapshot; the previously restored valid snapshot remains available on Pages. The
+research step also has its own ten-minute ceiling so it cannot consume the entire
+Frozen V7 daily-job budget.
 
 Run from the repository root as a module so imports are deterministic:
 
