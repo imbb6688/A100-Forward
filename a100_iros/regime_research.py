@@ -46,7 +46,17 @@ def stock_features(df: pd.DataFrame) -> pd.DataFrame:
     gs[extended.fillna(False)]="EXHAUSTION"
     gs[(cross_dn|((c<mid)&(_slope(mid)<0))).fillna(False)]="EXIT"
     x["rail_fast"]=fast; x["rail_mid"]=mid; x["rail_slow"]=slow
+    # Experimental Dual Trend confirmation (independent A100 proxy).
+    tf,ts=_ema(c,10),_ema(c,30)
+    dual_score=(50*(tf>ts)+25*(_slope(tf)>0)+25*(_slope(ts)>0)).astype(float)
+    # Experimental Capital Confirmation: OHLCV participation proxy, not institutional intent.
+    ret1=c.pct_change()
+    signed=np.sign(ret1.fillna(0))*np.log1p(v/vol20)
+    cap5=signed.rolling(5,min_periods=5).mean(); cap20=signed.rolling(20,min_periods=20).mean()
+    capital_score=(50*(cap5>0)+25*(cap5>cap20)+25*(v/vol20>1)).astype(float)
     x["atr20"]=atr; x["rail_score"]=rail_score; x["rail_regime"]=rail; x["gs_trigger"]=gs
+    x["dual_trend_score"]=dual_score; x["dual_trend_confirm"]=(dual_score>=75)&(c>ts)
+    x["capital_score"]=capital_score; x["capital_confirm"]=capital_score>=75
     return x
 
 def market_features(panel: pd.DataFrame) -> pd.DataFrame:
@@ -71,3 +81,40 @@ def forward_returns(df,horizons=(5,10,20)):
     out=df.copy()
     for h in horizons: out[f"fwd_{h}d"]=out["close"].shift(-h)/out["close"]-1
     return out
+
+
+def industry_features(panel: pd.DataFrame, industry_col="industry") -> pd.DataFrame:
+    """PIT cross-sectional industry regime; requires membership on each observation."""
+    if industry_col not in panel.columns:
+        return pd.DataFrame(columns=["date",industry_col,"industry_score","industry_regime"])
+    p=panel.sort_values(["symbol","date"]).copy(); g=p.groupby("symbol",group_keys=False)
+    p["r20"]=g["close"].pct_change(20)
+    p["ma20"]=g["close"].transform(lambda s:s.rolling(20,min_periods=20).mean())
+    p["above20"]=(p["close"]>p["ma20"]).astype(float); p["positive20"]=(p["r20"]>0).astype(float)
+    d=p.groupby(["date",industry_col]).agg(breadth=("above20","mean"),positive20=("positive20","mean"),
+        mom20=("r20","median"),members=("symbol","nunique")).reset_index()
+    d["industry_score"]=(40*d.breadth+30*d.positive20+30*((d.mom20.clip(-.10,.10)+.10)/.20)).clip(0,100)
+    d.loc[d.members<5,"industry_score"]=np.nan
+    d["industry_regime"]=pd.cut(d.industry_score,[-1,35,55,70,101],
+        labels=["WEAK","NEUTRAL","STRONG","LEADING"]).astype("string")
+    return d
+
+def ablation_matrix(z: pd.DataFrame) -> pd.DataFrame:
+    """Incremental filters; exposes marginal value and signal attrition."""
+    gs=z.gs_trigger.isin(["EARLY_ENTRY","TREND_ENTRY","REENTRY"])
+    market=z.market_regime.isin(["RECOVERY","RISK_ON","STRONG"])
+    rail=z.rail_regime.isin(["RECOVERY","BULL"])
+    steps=[("GS",gs),("+Market",gs&market)]
+    current=gs&market
+    if "industry_regime" in z.columns:
+        current=current&z.industry_regime.isin(["NEUTRAL","STRONG","LEADING"])
+        steps.append(("+Industry",current))
+    current=current&rail; steps.append(("+Rail",current))
+    current=current&z.dual_trend_confirm; steps.append(("+DualTrend",current))
+    current=current&z.capital_confirm; steps.append(("+Capital",current))
+    rows=[]
+    for name,mask in steps:
+        q=z[mask & z.fwd_20d.notna()]
+        rows.append({"model":name,"n":len(q),"mean_5d":q.fwd_5d.mean(),"mean_10d":q.fwd_10d.mean(),
+            "mean_20d":q.fwd_20d.mean(),"hit20":(q.fwd_20d>0).mean() if len(q) else np.nan})
+    return pd.DataFrame(rows)
