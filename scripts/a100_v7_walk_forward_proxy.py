@@ -88,6 +88,25 @@ def main(argv: Sequence[str] | None = None) -> int:
     report = build(args.root)
     output = args.output or args.root / "validation" / "walk_forward_proxy_report.json"
     output.parent.mkdir(parents=True, exist_ok=True)
+    feature = np.load(args.root / "A100_v6_results" / "A100_V6_features.npz", allow_pickle=False)
+    rank_context = np.load(args.root / "A100_v7_results" / "A100_V7_rank_context.npz", allow_pickle=False)
+    context = np.load(args.root / "A100_v5_results" / "A100_V5_context.npz", allow_pickle=False)
+    eligible = (
+        rank_context["broad"].astype(bool)
+        & np.isfinite(rank_context["rank_score"].astype(float))
+        & (feature["year"].astype(int) >= 2023)
+    )
+    idx = np.flatnonzero(eligible)
+    sid = feature["sid"].astype(int)[idx]
+    date_code = feature["date_code_sig"].astype(int)[idx]
+    candidates = pd.DataFrame({
+        "signal_date": pd.to_datetime(context["unique_dates"][date_code], unit="us").strftime("%Y-%m-%d"),
+        "symbol": context["symbols"][sid].astype(str),
+        "rank_score": rank_context["rank_score"].astype(float)[idx],
+    }).sort_values(["signal_date", "rank_score", "symbol"], ascending=[True, False, True])
+    candidates.to_csv(output.parent / "walk_forward_candidate_universe.csv", index=False)
+    report["candidate_rows"] = int(len(candidates))
+    report["candidate_symbols"] = int(candidates["symbol"].nunique())
     output.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     print(json.dumps(report, ensure_ascii=False, indent=2))
     return 0
