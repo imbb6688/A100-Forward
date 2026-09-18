@@ -53,3 +53,17 @@ The report treats 2023–2024 as retrospective selection/robustness evidence and
 formed after inspecting the 19 May 2026 signal, 2026 is diagnostic only and is
 excluded from the acceptance calculation. None of these labels claims that the
 strategy-selection process has a pristine, untouched historical test set.
+
+## Real-data result (run 35358428106)
+
+The comparator exactly reproduced Frozen V7's saved mask and scores. The simple
+composite-gate challenger passed every pre-2026 proxy check: 2023/2024 net return
+changed from -1.30%/-5.39% to +3.28%/+2.27%, while 2025 remained strong at
++23.93%. Its 2026 diagnostic extended the final signal from 19 May to 9 September,
+but returned -0.96% with profit factor 0.94. It therefore advances only to PIT
+portfolio replay, not production.
+
+The recovery/exhaustion state variant was rejected. It lost money in 2023, 2024,
+and 2026, so no further threshold tuning against 2026 is permitted in this
+research round. The machine-readable frozen summary is stored in
+`validation/v8_challenger_summary.json`.
