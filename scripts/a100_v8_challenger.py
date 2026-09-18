@@ -20,7 +20,11 @@ MODEL_SPEC = {
 }
 
 
-def eligibility_masks(features: Mapping[str, np.ndarray], v6_score: np.ndarray) -> Dict[str, np.ndarray]:
+def eligibility_masks(
+    features: Mapping[str, np.ndarray],
+    v6_score: np.ndarray,
+    adaptive_gate: np.ndarray | None = None,
+) -> Dict[str, np.ndarray]:
     """Return the frozen baseline and one isolated challenger.
 
     V8 changes only the redundant long-trend gate. All security-level quality,
@@ -32,9 +36,37 @@ def eligibility_masks(features: Mapping[str, np.ndarray], v6_score: np.ndarray) 
         & (features["industry"].astype(float) >= 9.0)
         & (v6_score.astype(float) >= 75.0)
     )
-    return {
+    masks = {
         "FROZEN_V7": common & features["gate"].astype(bool),
         "V8_COMPOSITE_GATE": common,
+    }
+    if adaptive_gate is not None:
+        masks["V8_ADAPTIVE_STATE"] = common & adaptive_gate.astype(bool)
+    return masks
+
+
+def adaptive_market_gate(market: pd.DataFrame, years: np.ndarray) -> tuple[np.ndarray, Dict[str, float]]:
+    """Earlier recovery gate with training-only exhaustion thresholds."""
+    idx = market["market_index"].to_numpy(dtype=float)
+    ma20 = market["ma20"].to_numpy(dtype=float)
+    ma60 = market["ma60"].to_numpy(dtype=float)
+    ret20 = market["ret20"].to_numpy(dtype=float)
+    slope20_5 = pd.Series(ma20).pct_change(5).to_numpy()
+    slope60_10 = pd.Series(ma60).pct_change(10).to_numpy()
+    stretch20 = idx / ma20 - 1.0
+    train = (years <= 2022) & np.isfinite(stretch20) & np.isfinite(ret20)
+    stretch_cap = float(np.quantile(stretch20[train], 0.90))
+    momentum_cap = float(np.quantile(ret20[train], 0.90))
+    recovery = (
+        (idx > ma20)
+        & (ret20 > 0.0)
+        & (slope20_5 > 0.0)
+        & ((ma20 > ma60) | ((idx > ma60) & (slope60_10 >= 0.0)))
+    )
+    exhausted = (stretch20 > stretch_cap) | (ret20 > momentum_cap)
+    return recovery & ~exhausted, {
+        "stretch20_training_q90": stretch_cap,
+        "ret20_training_q90": momentum_cap,
     }
 
 
@@ -225,7 +257,12 @@ def build(root: Path, output_dir: Path) -> Dict[str, Any]:
     years = features["year"].astype(int)
     date_code = features["date_code_sig"].astype(int)
     net_r = features["netR"].astype(float)
-    masks = eligibility_masks(features, v6_score)
+    market = pd.read_csv(root / "A100_v6_results" / "A100_V6_market_gate.csv")
+    if len(market) != len(dates):
+        raise ValueError(f"market/date length mismatch: {len(market)} != {len(dates)}")
+    daily_years = pd.DatetimeIndex(dates).year.to_numpy()
+    adaptive_daily, adaptive_thresholds = adaptive_market_gate(market, daily_years)
+    masks = eligibility_masks(features, v6_score, adaptive_daily[date_code])
 
     variants: Dict[str, Any] = {}
     selected_rows = []
@@ -243,7 +280,11 @@ def build(root: Path, output_dir: Path) -> Dict[str, Any]:
             "definition": (
                 "Frozen V7: composite thresholds plus MA20>MA60>MA120 full-trend gate"
                 if name == "FROZEN_V7"
-                else "V8 Challenger: same thresholds/model; remove only the redundant MA120 full-trend gate"
+                else (
+                    "V8 diagnostic: same thresholds/model; no separate trend gate"
+                    if name == "V8_COMPOSITE_GATE"
+                    else "V8 adaptive: rising MA20 recovery, MA60 confirmation, and training-only q90 exhaustion veto"
+                )
             ),
             "eligible_rows_all_years": int(eligible.sum()),
             "training_rows_with_outcome": int((eligible & (years <= 2022) & np.isfinite(net_r)).sum()),
@@ -282,6 +323,7 @@ def build(root: Path, output_dir: Path) -> Dict[str, Any]:
         },
         "frozen_v7_reproduction": parity,
         "controlled_change": "Remove only Frozen V7 full-trend gate; retain composite market>=14 and all security thresholds.",
+        "adaptive_state_thresholds": adaptive_thresholds,
         "limitations": [
             "PIT ST history is not yet applied",
             "historical industry membership is still a price-cluster proxy",

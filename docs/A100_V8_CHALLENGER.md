@@ -23,6 +23,13 @@ The first V8 challenger removes only the hard full-trend gate. It retains:
 The model is refit on the challenger training population because Frozen V7 never
 produced rank scores outside its own hard gate.
 
+The second challenger keeps the same security thresholds but replaces the hard
+120-session ordering with a state gate: index above a rising MA20, positive
+20-session return, and either established MA20/MA60 trend or an early recovery
+above MA60 with a non-falling MA60. An exhaustion veto removes observations above
+the 90th percentile of index/MA20 stretch or 20-session return. Both caps are
+estimated only from 2020–2022; forward years cannot move them.
+
 Before comparison, the research job must reproduce Frozen V7's saved eligibility
 mask and rank scores exactly. A mismatch stops the job, preventing a faulty
 baseline from making the challenger look better.

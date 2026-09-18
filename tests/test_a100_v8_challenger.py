@@ -1,8 +1,15 @@
 import unittest
 
 import numpy as np
+import pandas as pd
 
-from scripts.a100_v8_challenger import _period_label, _proxy_acceptance, eligibility_masks, select_top_two
+from scripts.a100_v8_challenger import (
+    _period_label,
+    _proxy_acceptance,
+    adaptive_market_gate,
+    eligibility_masks,
+    select_top_two,
+)
 
 
 class V8ChallengerTests(unittest.TestCase):
@@ -16,6 +23,18 @@ class V8ChallengerTests(unittest.TestCase):
         masks = eligibility_masks(features, np.array([75.0, 75.0, 75.0, 75.0]))
         self.assertEqual(masks["FROZEN_V7"].tolist(), [True, False, False, False])
         self.assertEqual(masks["V8_COMPOSITE_GATE"].tolist(), [True, True, False, False])
+
+    def test_adaptive_gate_uses_training_only_exhaustion_caps(self):
+        idx = np.linspace(100.0, 140.0, 30)
+        ma20 = np.linspace(99.0, 125.0, 30)
+        ma60 = np.linspace(98.0, 120.0, 30)
+        ret20 = np.linspace(0.01, 0.20, 30)
+        market = pd.DataFrame({"market_index": idx, "ma20": ma20, "ma60": ma60, "ret20": ret20})
+        years = np.array([2022] * 20 + [2026] * 10)
+        gate, thresholds = adaptive_market_gate(market, years)
+        self.assertEqual(gate.dtype, np.dtype(bool))
+        self.assertAlmostEqual(thresholds["ret20_training_q90"], np.quantile(ret20[:20], 0.90))
+        self.assertFalse(gate[-1])
 
     def test_top_two_is_daily_and_out_of_sample(self):
         eligible = np.ones(6, dtype=bool)
