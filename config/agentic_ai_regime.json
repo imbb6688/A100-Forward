@@ -1,5 +1,5 @@
 {
-  "schema_version": "A100-Agentic-AI-Regime-v1",
+  "schema_version": "A100-Agentic-AI-Regime-v2",
   "weights": {
     "token_demand": 0.15,
     "domestic_compute": 0.20,
@@ -8,17 +8,46 @@
     "robotics": 0.10,
     "star100_relative_strength": 0.20
   },
-  "monitoring_notes": {
-    "token_demand": "Agent adoption, inference/token usage, model/API demand and AI capex proxies",
-    "domestic_compute": "China AI accelerator/server/cluster demand and domestic substitution",
-    "optical_interconnect": "Optical modules, optical components, switch/interconnect demand",
-    "semiconductor_equipment_materials": "Domestic semiconductor equipment/material order and earnings breadth",
-    "robotics": "Humanoid/industrial robot orders, components and physical-AI adoption",
-    "star100_relative_strength": "STAR100 relative to STAR50 and CSI300 across 5d/20d/60d horizons"
+  "quality_gates": {
+    "min_coverage": 0.67,
+    "min_effective_coverage": 0.50,
+    "max_calendar_age_days": 4,
+    "minimum_proxy_member_coverage": 0.60
   },
-  "governance": {
-    "research_only": true,
-    "frozen_v7_unchanged": true,
-    "promotion_requires_backtest_walk_forward_shadow": true
-  }
+  "market_proxy_baskets": {
+    "domestic_compute": [
+      {"ticker": "688256.SH", "name": "寒武纪"}, {"ticker": "688041.SH", "name": "海光信息"},
+      {"ticker": "000977.SZ", "name": "浪潮信息"}, {"ticker": "603019.SH", "name": "中科曙光"},
+      {"ticker": "300474.SZ", "name": "景嘉微"}
+    ],
+    "optical_interconnect": [
+      {"ticker": "300308.SZ", "name": "中际旭创"}, {"ticker": "300502.SZ", "name": "新易盛"},
+      {"ticker": "002281.SZ", "name": "光迅科技"}, {"ticker": "300394.SZ", "name": "天孚通信"},
+      {"ticker": "688498.SH", "name": "源杰科技"}
+    ],
+    "semiconductor_equipment_materials": [
+      {"ticker": "002371.SZ", "name": "北方华创"}, {"ticker": "688012.SH", "name": "中微公司"},
+      {"ticker": "688120.SH", "name": "华海清科"}, {"ticker": "688019.SH", "name": "安集科技"},
+      {"ticker": "300666.SZ", "name": "江丰电子"}
+    ],
+    "robotics": [
+      {"ticker": "002747.SZ", "name": "埃斯顿"}, {"ticker": "300024.SZ", "name": "机器人"},
+      {"ticker": "688017.SH", "name": "绿的谐波"}, {"ticker": "002896.SZ", "name": "中大力德"},
+      {"ticker": "603728.SH", "name": "鸣志电器"}
+    ]
+  },
+  "relative_strength_indices": {
+    "star100": {"direct_tickers": ["000698.SH", "588030.SH"], "constituent_index_code": "000698.SH", "minimum_constituents": 50, "minimum_market_coverage": 0.80},
+    "star50": {"direct_tickers": ["000688.SH", "588000.SH"], "constituent_index_code": "000688.SH", "minimum_constituents": 30, "minimum_market_coverage": 0.80},
+    "csi300": {"direct_tickers": ["000300.SH", "510300.SH"], "constituent_index_code": "000300.SH", "minimum_constituents": 200, "minimum_market_coverage": 0.80}
+  },
+  "monitoring_notes": {
+    "token_demand": "Reserved for supported first-party usage/capex evidence; intentionally missing today.",
+    "domestic_compute": "Listed-equity market proxy, not direct accelerator/server orders.",
+    "optical_interconnect": "Listed-equity market proxy, not direct optical orders.",
+    "semiconductor_equipment_materials": "Listed-equity market proxy, not direct equipment/material orders.",
+    "robotics": "Listed-equity market proxy, not direct robot orders or adoption.",
+    "star100_relative_strength": "STAR100 relative to STAR50 and CSI300 over 5d/20d/60d."
+  },
+  "governance": {"research_only": true, "frozen_v7_unchanged": true, "generates_orders": false, "promotion_requires_backtest_walk_forward_shadow": true}
 }
