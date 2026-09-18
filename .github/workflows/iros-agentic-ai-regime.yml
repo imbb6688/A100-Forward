@@ -1,0 +1,87 @@
+name: Validate Agentic AI Regime
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'a100_iros/agentic_ai_*.py'
+      - 'scripts/iros_agentic_ai_regime.py'
+      - 'config/agentic_ai_regime.json'
+      - 'tests/test_iros_agentic_ai_*.py'
+      - '.github/workflows/iros-agentic-ai-regime.yml'
+  push:
+    branches:
+      - 'feat/agentic-ai-infra-regime'
+    paths:
+      - 'a100_iros/agentic_ai_*.py'
+      - 'scripts/iros_agentic_ai_regime.py'
+      - 'scripts/download_hithink.py'
+      - 'config/agentic_ai_regime.json'
+      - 'tests/test_iros_agentic_ai_*.py'
+      - '.github/workflows/iros-agentic-ai-regime.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: agentic-ai-regime-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Unit and integration tests
+        run: python -m unittest tests.test_iros_agentic_ai_regime tests.test_iros_agentic_ai_inputs tests.test_iros_agentic_ai_cli -v
+      - name: Verify CLI fails closed without governed input
+        run: |
+          if python -m scripts.iros_agentic_ai_regime; then
+            echo "CLI unexpectedly accepted missing market input" >&2
+            exit 1
+          fi
+
+  live-hithink:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Prepare real-data runtime
+        run: |
+          sudo mkdir -p /mnt/data
+          sudo chown -R $USER:$USER /mnt/data
+      - name: Download validated full-market data
+        env:
+          HITHINK_FINANCE_API_KEY: ${{ secrets.HITHINK_FINANCE_API_KEY }}
+        run: python scripts/download_hithink.py
+      - name: Build real-data regime snapshot
+        env:
+          HITHINK_FINANCE_API_KEY: ${{ secrets.HITHINK_FINANCE_API_KEY }}
+        run: |
+          python -m scripts.iros_agentic_ai_regime \
+            --daily /mnt/data/A100_2020_2026_raw.parquet \
+            --manifest /mnt/data/hithink_manifest.json \
+            --input-output /mnt/data/agentic-ai-regime/input.json \
+            --output /mnt/data/agentic-ai-regime/latest.json \
+            --history /mnt/data/agentic-ai-regime/history.jsonl
+      - name: Upload sanitized evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: agentic-ai-regime-real-data
+          path: /mnt/data/agentic-ai-regime/
+          if-no-files-found: error
+          retention-days: 14

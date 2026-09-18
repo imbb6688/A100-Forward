@@ -53,6 +53,19 @@ class IROSDailyIntegrationTests(unittest.TestCase):
         self.assertIn("touch /mnt/data/iros_enrichment_publish_ready", workflow)
         self.assertIn("git add state/iros_research", workflow)
 
+    def test_agentic_regime_is_real_data_persistent_and_failure_isolated(self):
+        workflow = (ROOT / ".github/workflows/a100-forward.yml").read_text(encoding="utf-8")
+        regime = workflow.index("- name: Build research-only Agentic AI regime")
+        account = workflow.index("- name: Update Forward Account V1")
+        self.assertLess(regime, account)
+        self.assertIn("--daily /mnt/data/A100_2020_2026_raw.parquet", workflow)
+        self.assertIn("--manifest /mnt/data/hithink_manifest.json", workflow)
+        self.assertIn("previous valid state will remain unpublished", workflow)
+        self.assertIn("git add state/iros-regime", workflow)
+        self.assertIn("timeout 10m python -m scripts.iros_agentic_ai_regime", workflow)
+        self.assertIn("if [ -s /mnt/data/state/iros-regime/latest.json ]; then", workflow)
+        self.assertNotIn("python scripts/iros_agentic_ai_regime.py", workflow)
+
 
 if __name__ == "__main__":
     unittest.main()
