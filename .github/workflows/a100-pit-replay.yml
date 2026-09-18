@@ -1,0 +1,155 @@
+name: A100 PIT Portfolio Replay
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: a100-pit-replay
+  cancel-in-progress: false
+
+jobs:
+  prepare-symbols:
+    runs-on: ubuntu-latest
+    outputs:
+      symbol_count: ${{ steps.count.outputs.symbol_count }}
+    steps:
+      - name: Download frozen OOS candidate manifest
+        run: |
+          curl --fail --retry 5 --location \
+            https://imbb6688.github.io/A100-Forward/walk_forward_candidate_universe.csv \
+            --output walk_forward_candidate_universe.csv
+          test -s walk_forward_candidate_universe.csv
+
+      - name: Count candidate symbols
+        id: count
+        run: |
+          count=$(python -c "import pandas as pd; print(pd.read_csv('walk_forward_candidate_universe.csv').symbol.nunique())")
+          echo "symbol_count=$count" >> "$GITHUB_OUTPUT"
+          test "$count" -gt 4000
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pit-candidate-manifest
+          path: walk_forward_candidate_universe.csv
+          retention-days: 7
+
+  fetch-industry:
+    needs: prepare-symbols
+    strategy:
+      fail-fast: false
+      max-parallel: 18
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - run: pip install -r requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          name: pit-candidate-manifest
+          path: /mnt/data/validation
+      - name: Fetch one low-rate CNInfo industry shard
+        run: |
+          python scripts/a100_fetch_pit_history.py \
+            --root /mnt/data \
+            --kind industry \
+            --symbols-file /mnt/data/validation/walk_forward_candidate_universe.csv \
+            --shard-index ${{ matrix.shard }} \
+            --shard-count 18 \
+            --industry-workers 1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pit-industry-${{ matrix.shard }}
+          path: /mnt/data/pit/industry_membership_history.part-*.parquet
+          retention-days: 7
+
+  replay:
+    needs: [prepare-symbols, fetch-industry]
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Run tests and frozen preflight
+        run: |
+          python -m unittest discover -s tests -v
+          python scripts/preflight.py
+      - name: Prepare runtime
+        run: |
+          sudo mkdir -p /mnt/data/A100_complete_results /mnt/data/A100_v5_results /mnt/data/A100_v6_results /mnt/data/A100_v7_results /mnt/data/validation /mnt/data/pit /mnt/data/state
+          sudo chown -R $USER:$USER /mnt/data
+          cp scripts/*.py /mnt/data/
+          cp -a validation/. /mnt/data/validation/
+          cp -a state/. /mnt/data/state/
+      - name: Download HiThink data and build frozen chain
+        env:
+          HITHINK_FINANCE_API_KEY: ${{ secrets.HITHINK_FINANCE_API_KEY }}
+        run: |
+          python scripts/download_hithink.py
+          cd /mnt/data
+          python a100_canonical_prep.py
+          python a100_v5_pit_proxy.py
+          python a100_v6_feature_prep_forward.py
+          python a100_v6_train_score_forward.py
+          python a100_v7_forward_ranker.py
+          python "$GITHUB_WORKSPACE/scripts/a100_v7_walk_forward_proxy.py"
+      - uses: actions/download-artifact@v4
+        with:
+          name: pit-candidate-manifest
+          path: /tmp/frozen-candidates
+      - name: Verify replay uses the exact sharded candidate universe
+        run: |
+          python -c "import pandas as pd; a=set(pd.read_csv('/tmp/frozen-candidates/walk_forward_candidate_universe.csv').symbol); b=set(pd.read_csv('/mnt/data/validation/walk_forward_candidate_universe.csv').symbol); assert a == b, f'candidate drift: frozen={len(a)} rebuilt={len(b)} delta={len(a^b)}'"
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: pit-industry-*
+          path: /tmp/pit-industry-shards
+      - name: Merge industry shards and fetch historical ST
+        run: |
+          python scripts/a100_merge_pit_shards.py \
+            --input /tmp/pit-industry-shards \
+            --output /mnt/data/pit/industry_membership_history.parquet \
+            --expected-shards 18 \
+            --expected-symbols ${{ needs.prepare-symbols.outputs.symbol_count }}
+          python scripts/a100_fetch_pit_history.py --root /mnt/data --kind st --st-workers 4
+      - name: Run portfolio-level replay and graduation evidence
+        run: |
+          python scripts/a100_portfolio_replay.py --root /mnt/data
+          python scripts/a100_data_inventory.py
+          python scripts/a100_risk_scenarios.py
+          python scripts/a100_graduation_gate.py
+          test -s /mnt/data/validation/walk_forward_report.json
+          test -s /mnt/data/validation/portfolio_replay_trades.parquet
+          test -s /mnt/data/validation/portfolio_replay_equity.parquet
+      - uses: actions/upload-artifact@v4
+        with:
+          name: a100-pit-portfolio-replay-evidence
+          path: |
+            /mnt/data/pit/*_manifest.json
+            /mnt/data/validation/walk_forward_report.json
+            /mnt/data/validation/portfolio_replay_trades.parquet
+            /mnt/data/validation/portfolio_replay_equity.parquet
+            /mnt/data/forward/graduation_gate.json
+          retention-days: 90
+      - name: Persist compact replay evidence
+        run: |
+          cp /mnt/data/validation/walk_forward_report.json validation/walk_forward_report.json
+          cp /mnt/data/forward/graduation_gate.json validation/graduation_gate_after_replay.json
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add validation/walk_forward_report.json validation/graduation_gate_after_replay.json
+          git commit -m "evidence: publish PIT portfolio replay [skip ci]"
+          git pull --rebase origin main
+          git push origin HEAD:main
