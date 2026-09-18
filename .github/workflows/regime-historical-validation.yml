@@ -28,6 +28,8 @@ jobs:
           HITHINK_FINANCE_API_KEY: ${{ secrets.HITHINK_FINANCE_API_KEY }}
         run: python scripts/download_hithink.py
       - name: Run research-only historical validation
+        env:
+          PYTHONPATH: ${{ github.workspace }}
         run: |
           python scripts/a100_regime_research.py --input /mnt/data/A100_2020_2026_raw.parquet --out /mnt/data/regime_v1
           test -s /mnt/data/regime_v1/state_forward_returns.csv
