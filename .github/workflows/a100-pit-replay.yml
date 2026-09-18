@@ -2,6 +2,10 @@ name: A100 PIT Portfolio Replay
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/a100-pit-replay.yml'
 
 permissions:
   contents: write
