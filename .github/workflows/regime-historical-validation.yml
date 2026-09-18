@@ -34,6 +34,17 @@ jobs:
           python scripts/a100_regime_research.py --input /mnt/data/A100_2020_2026_raw.parquet --out /mnt/data/regime_v1
           test -s /mnt/data/regime_v1/state_forward_returns.csv
           test -s /mnt/data/regime_v1/focus_2026_0519_0918.csv
+          echo "=== ABLATION_MATRIX ==="
+          cat /mnt/data/regime_v1/ablation_matrix.csv
+          echo "=== FOCUS_SUMMARY ==="
+          python - <<'PY'
+          import pandas as pd
+          p="/mnt/data/regime_v1/focus_2026_0519_0918.csv"
+          x=pd.read_csv(p)
+          print(x.to_csv(index=False))
+          print("FOCUS_AGG")
+          print(x[["market_score","bull","early"]].describe().to_csv())
+          PY
       - uses: actions/upload-artifact@v4
         with:
           name: a100-regime-v1-historical-evidence
