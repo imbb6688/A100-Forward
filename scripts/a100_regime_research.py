@@ -2,7 +2,7 @@
 import argparse, json
 from pathlib import Path
 import pandas as pd
-from a100_iros.regime_research import market_features,stock_features,forward_returns
+from a100_iros.regime_research import market_features,stock_features,forward_returns,industry_features,ablation_matrix
 
 def load(path):
     p=Path(path)
@@ -27,7 +27,12 @@ def main():
     raw=load(a.input); m=market_features(raw)
     stocks=pd.concat([forward_returns(stock_features(g)) for _,g in raw.groupby("symbol",sort=False)],ignore_index=True)
     z=stocks.merge(m[["date","score","market_regime"]],on="date",how="left")
+    ind=industry_features(raw)
+    if not ind.empty:
+        z=z.merge(ind[["date","industry","industry_score","industry_regime"]],on=["date","industry"],how="left")
+        ind.to_csv(out/"industry_regime.csv",index=False)
     z.to_parquet(out/"regime_observations.parquet",index=False); m.to_csv(out/"market_regime.csv",index=False)
+    ablation_matrix(z).to_csv(out/"ablation_matrix.csv",index=False)
     valid=z[z.fwd_20d.notna()]
     summary=valid.groupby(["market_regime","rail_regime","gs_trigger"],dropna=False).agg(
         n=("fwd_20d","size"),mean_5d=("fwd_5d","mean"),mean_20d=("fwd_20d","mean"),
