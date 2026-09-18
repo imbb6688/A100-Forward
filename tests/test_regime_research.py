@@ -14,7 +14,7 @@ class TestRegimeResearch(unittest.TestCase):
     def test_states_and_bounds(self):
         p=self.panel(); one=stock_features(p[p.symbol=="000001.SZ"])
         self.assertIn(one.rail_regime.iloc[-1],{"BULL","EXTENDED"})
-        m=market_features(p); self.assertTrue(m.score.between(0,100).all())
+        m=market_features(p); ready=m.score.dropna(); self.assertGreater(len(ready),0); self.assertTrue(ready.between(0,100).all()); self.assertTrue(m.score.iloc[:20].isna().any())
     def test_causal_prefix_invariance(self):
         p=self.panel(); one=p[p.symbol=="000001.SZ"].copy()
         a=stock_features(one.iloc[:100]); b=stock_features(one)
