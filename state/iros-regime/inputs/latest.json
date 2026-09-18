@@ -1,0 +1,228 @@
+{
+  "as_of": "2026-09-18",
+  "provenance": {
+    "disclosure": "Industry buckets are market-implied listed-equity proxies, not direct measures of token usage, orders, revenue or fundamentals. token_demand is intentionally missing until a supported upstream source exists.",
+    "formula_version": "market-proxy-relative-strength-v2",
+    "manifest_latest_trade_date": "2026-09-18",
+    "source": "HiThink Financial-API full-market daily-k + adjustment events"
+  },
+  "quality": {
+    "index_details": {
+      "csi300": {
+        "bias_warning": "Current-constituent equal-weight proxy; not point-in-time or cap-weighted.",
+        "confidence": 0.693,
+        "market_member_coverage": 0.99,
+        "member_count": 300,
+        "method": "current_constituents_equal_weight",
+        "returns": {
+          "5": 0.00012504662996901762,
+          "20": -0.017866821575996623,
+          "60": -0.017603971072741545
+        },
+        "ticker": "000300.SH"
+      },
+      "star100": {
+        "bias_warning": "Current-constituent equal-weight proxy; not point-in-time or cap-weighted.",
+        "confidence": 0.7,
+        "market_member_coverage": 1.0,
+        "member_count": 100,
+        "method": "current_constituents_equal_weight",
+        "returns": {
+          "5": 0.06931463431910913,
+          "20": 0.002054399276097396,
+          "60": -0.09161352429081589
+        },
+        "ticker": "000698.SH"
+      },
+      "star50": {
+        "bias_warning": "Current-constituent equal-weight proxy; not point-in-time or cap-weighted.",
+        "confidence": 0.7,
+        "market_member_coverage": 1.0,
+        "member_count": 50,
+        "method": "current_constituents_equal_weight",
+        "returns": {
+          "5": 0.0531604243142638,
+          "20": -0.03395536747984632,
+          "60": -0.14159747594646233
+        },
+        "ticker": "000688.SH"
+      }
+    },
+    "manifest_latest_rows": 5553,
+    "manifest_schema": "A100-HITHINK-NORMALIZED-v3",
+    "market_date_age_days": 0,
+    "missing_buckets": [
+      "token_demand"
+    ],
+    "theme_details": {
+      "domestic_compute": {
+        "available_members": [
+          "688256.SH",
+          "688041.SH",
+          "000977.SZ",
+          "603019.SH",
+          "300474.SZ"
+        ],
+        "breadth_above_ma20": 0.8,
+        "horizon_coverage": {
+          "5": 1.0,
+          "20": 1.0,
+          "60": 1.0
+        },
+        "member_coverage": 1.0,
+        "requested_members": [
+          "688256.SH",
+          "688041.SH",
+          "000977.SZ",
+          "603019.SH",
+          "300474.SZ"
+        ],
+        "returns": {
+          "5": 0.048758061799068206,
+          "20": 0.0019320153026259224,
+          "60": -0.11840256383949946
+        }
+      },
+      "optical_interconnect": {
+        "available_members": [
+          "300308.SZ",
+          "300502.SZ",
+          "002281.SZ",
+          "300394.SZ",
+          "688498.SH"
+        ],
+        "breadth_above_ma20": 1.0,
+        "horizon_coverage": {
+          "5": 1.0,
+          "20": 1.0,
+          "60": 1.0
+        },
+        "member_coverage": 1.0,
+        "requested_members": [
+          "300308.SZ",
+          "300502.SZ",
+          "002281.SZ",
+          "300394.SZ",
+          "688498.SH"
+        ],
+        "returns": {
+          "5": 0.06392389760619972,
+          "20": 0.056415615298740306,
+          "60": -0.14681449852679912
+        }
+      },
+      "robotics": {
+        "available_members": [
+          "002747.SZ",
+          "300024.SZ",
+          "688017.SH",
+          "002896.SZ",
+          "603728.SH"
+        ],
+        "breadth_above_ma20": 0.4,
+        "horizon_coverage": {
+          "5": 1.0,
+          "20": 1.0,
+          "60": 1.0
+        },
+        "member_coverage": 1.0,
+        "requested_members": [
+          "002747.SZ",
+          "300024.SZ",
+          "688017.SH",
+          "002896.SZ",
+          "603728.SH"
+        ],
+        "returns": {
+          "5": 0.024327436027381855,
+          "20": -0.06732643234774038,
+          "60": -0.14104924412102832
+        }
+      },
+      "semiconductor_equipment_materials": {
+        "available_members": [
+          "002371.SZ",
+          "688012.SH",
+          "688120.SH",
+          "688019.SH",
+          "300666.SZ"
+        ],
+        "breadth_above_ma20": 1.0,
+        "horizon_coverage": {
+          "5": 1.0,
+          "20": 1.0,
+          "60": 1.0
+        },
+        "member_coverage": 1.0,
+        "requested_members": [
+          "002371.SZ",
+          "688012.SH",
+          "688120.SH",
+          "688019.SH",
+          "300666.SZ"
+        ],
+        "returns": {
+          "5": 0.0920002421505683,
+          "20": -0.01214846008096009,
+          "60": -0.14154367417989872
+        }
+      }
+    }
+  },
+  "schema_version": "A100-Agentic-AI-Regime-Input-v2",
+  "signals": [
+    {
+      "bucket": "domestic_compute",
+      "confidence": 1.0,
+      "note": "market proxy; members=5/5; breadth_ma20=0.8",
+      "observed_at": "2026-09-18",
+      "proxy_type": "market_proxy_not_fundamental_demand",
+      "score": 0.19816154647427472,
+      "source": "HiThink full-market daily-k; curated listed-equity proxy basket"
+    },
+    {
+      "bucket": "optical_interconnect",
+      "confidence": 1.0,
+      "note": "market proxy; members=5/5; breadth_ma20=1.0",
+      "observed_at": "2026-09-18",
+      "proxy_type": "market_proxy_not_fundamental_demand",
+      "score": 0.4030971599725797,
+      "source": "HiThink full-market daily-k; curated listed-equity proxy basket"
+    },
+    {
+      "bucket": "semiconductor_equipment_materials",
+      "confidence": 1.0,
+      "note": "market proxy; members=5/5; breadth_ma20=1.0",
+      "observed_at": "2026-09-18",
+      "proxy_type": "market_proxy_not_fundamental_demand",
+      "score": 0.18674768493087326,
+      "source": "HiThink full-market daily-k; curated listed-equity proxy basket"
+    },
+    {
+      "bucket": "robotics",
+      "confidence": 1.0,
+      "note": "market proxy; members=5/5; breadth_ma20=0.4",
+      "observed_at": "2026-09-18",
+      "proxy_type": "market_proxy_not_fundamental_demand",
+      "score": -0.23239421471835486,
+      "source": "HiThink full-market daily-k; curated listed-equity proxy basket"
+    },
+    {
+      "bucket": "star100_relative_strength",
+      "confidence": 0.693,
+      "note": "STAR100-STAR50/CSI300 blended relative strength=0.0374; STAR100-STAR50/CSI300 blended relative strength=0.0296; STAR100-STAR50/CSI300 blended relative strength=0.0004",
+      "observed_at": "2026-09-18",
+      "proxy_type": "index_relative_strength",
+      "score": 0.3672166490750747,
+      "source": "HiThink full-market daily-k; 5d/20d/60d blended relative strength"
+    }
+  ],
+  "weights": {
+    "domestic_compute": 0.2,
+    "optical_interconnect": 0.15,
+    "robotics": 0.1,
+    "semiconductor_equipment_materials": 0.2,
+    "star100_relative_strength": 0.2,
+    "token_demand": 0.15
+  }
+}
