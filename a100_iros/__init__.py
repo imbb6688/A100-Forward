@@ -24,6 +24,14 @@ from .enrichment import (
     targets_from_watchlist,
 )
 from .gates import GateResult, evaluate_trade_readiness, promote_to_trade_ready
+from .agentic_ai_regime import (
+    AgenticAIRegimeSnapshot,
+    AgenticAIRegimeState,
+    BucketScore,
+    RegimeSignal,
+    build_agentic_ai_regime,
+    relative_strength_signal,
+)
 from .memory import ResearchSnapshot, ThesisDelta, compare_snapshots
 from .models import (
     DecisionState,
@@ -54,6 +62,12 @@ from .validation import (
 )
 
 __all__ = [
+    "AgenticAIRegimeSnapshot",
+    "AgenticAIRegimeState",
+    "BucketScore",
+    "RegimeSignal",
+    "build_agentic_ai_regime",
+    "relative_strength_signal",
     "EnrichmentTarget",
     "EnrichmentResult",
     "SecurityResearchFile",
