@@ -29,6 +29,14 @@ class TestWorkflowGovernance(unittest.TestCase):
         self.assertIn("validate_yinyang_v2_runtime.py", text)
 
 
+    def test_forward_schedule_documentation_matches_workflow(self):
+        workflow = (ROOT / ".github/workflows/a100-forward.yml").read_text(encoding="utf-8")
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        self.assertIn("cron: '10 8 * * 1-5'", workflow)
+        self.assertIn("16:10 Asia/Shanghai", workflow)
+        self.assertIn("16:10 Asia/Shanghai", readme)
+        self.assertNotIn("15:35 Asia/Shanghai", readme)
+
     def test_autonomous_ci_is_scoped_to_autonomous_surface(self):
         text = (ROOT / ".github/workflows/a100-autonomous-ci.yml").read_text(encoding="utf-8")
         self.assertNotIn("- 'tests/**'", text)
