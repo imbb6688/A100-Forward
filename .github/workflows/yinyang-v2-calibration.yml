@@ -1,0 +1,68 @@
+name: A100 Yin-Yang V2 Calibration
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'a100_iros/yinyang_v2.py'
+      - 'scripts/iros_yinyang_v2.py'
+      - 'scripts/validate_yinyang_v2_alignment.py'
+      - 'tests/test_iros_yinyang_v2.py'
+      - 'validation/yinyang_vendor_labels_20260825_20260918.json'
+      - '.github/workflows/yinyang-v2-calibration.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: a100-yinyang-v2-calibration
+  cancel-in-progress: true
+
+jobs:
+  calibrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run Yin-Yang v2 tests
+        run: python -m unittest tests.test_iros_yinyang_v2 -v
+
+      - name: Build v2 from committed full-market history
+        run: |
+          mkdir -p state/iros-regime/yinyang-v2
+          python -m scripts.iros_yinyang_v2 \
+            --history state/iros-regime/yinyang/history.csv \
+            --output state/iros-regime/yinyang-v2/latest.json \
+            --series state/iros-regime/yinyang-v2/history.csv
+
+      - name: Compare with vendor-labeled sample
+        run: |
+          python scripts/validate_yinyang_v2_alignment.py \
+            --series state/iros-regime/yinyang-v2/history.csv \
+            --labels validation/yinyang_vendor_labels_20260825_20260918.json \
+            --output state/iros-regime/yinyang-v2/vendor_alignment.json
+
+      - name: Persist v2 calibration evidence
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add state/iros-regime/yinyang-v2
+          if git diff --cached --quiet; then
+            echo "No Yin-Yang v2 changes."
+          else
+            git commit -m "chore: update Yin-Yang v2 calibration evidence [skip ci]"
+            git push origin HEAD:main
+          fi
