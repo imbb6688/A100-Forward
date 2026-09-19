@@ -40,7 +40,7 @@ class FingerprintSnapshot:
     limit_up_like: int
     limit_down_like: int
     coverage: float
-    status: str = "UNVALIDATED_RESEARCH_HEURISTIC"
+    status: str = "LEGACY_V1_REGIME_ONLY_FINGER_SEMANTICS_DEPRECATED"
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
