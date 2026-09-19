@@ -1,13 +1,6 @@
-name: A100 Yin-Yang Backfill
+name: A100 Yin-Yang Backfill (Maintenance)
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - '.github/workflows/yinyang-backfill.yml'
-      - 'a100_iros/yinyang_fingerprint.py'
-      - 'scripts/iros_yinyang_fingerprint.py'
   workflow_dispatch:
 
 permissions:
