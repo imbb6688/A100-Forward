@@ -128,7 +128,7 @@
     },
     "manifest_latest_rows": 5553,
     "manifest_schema": "A100-HITHINK-NORMALIZED-v3",
-    "market_date_age_days": 0,
+    "market_date_age_days": 1,
     "missing_buckets": [
       "token_demand"
     ],
@@ -258,7 +258,7 @@
     "score_interpretation": "0-100 market-implied regime strength; not a buy/sell signal",
     "validated_trading_rule": false
   },
-  "input_fingerprint": "a4f18b977875879af9cd3d204cbaafb1148cc34729ee91b0c70356b004c67f6a",
+  "input_fingerprint": "37638bbfa193f6d83c1490877af757aa5c3c82a02b630ba09fbc4d589733a61a",
   "missing_buckets": [
     "token_demand"
   ],

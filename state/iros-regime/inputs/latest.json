@@ -50,7 +50,7 @@
     },
     "manifest_latest_rows": 5553,
     "manifest_schema": "A100-HITHINK-NORMALIZED-v3",
-    "market_date_age_days": 0,
+    "market_date_age_days": 1,
     "missing_buckets": [
       "token_demand"
     ],
