@@ -28,6 +28,15 @@ class TestWorkflowGovernance(unittest.TestCase):
         self.assertIn("yinyang_v2_publish_ready", text)
         self.assertIn("validate_yinyang_v2_runtime.py", text)
 
+
+    def test_autonomous_ci_is_scoped_to_autonomous_surface(self):
+        text = (ROOT / ".github/workflows/a100-autonomous-ci.yml").read_text(encoding="utf-8")
+        self.assertNotIn("- 'tests/**'", text)
+        self.assertNotIn("- 'validation/**'", text)
+        self.assertNotIn("- '.github/workflows/a100-forward.yml'", text)
+        self.assertIn("- 'tests/test_autonomous_policy.py'", text)
+        self.assertIn("-p 'test_autonomous_policy.py'", text)
+
     def test_agentic_persistence_is_scoped(self):
         text = (ROOT / ".github/workflows/a100-forward.yml").read_text(encoding="utf-8")
         self.assertNotIn(
