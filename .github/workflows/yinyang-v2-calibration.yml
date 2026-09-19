@@ -38,7 +38,7 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Run Yin-Yang v2 tests
-        run: python -m unittest tests.test_iros_yinyang_v2 -v
+        run: python -m unittest discover -s tests -p 'test_iros_yinyang_v2.py' -v
 
       - name: Build v2 from committed full-market history
         run: |
