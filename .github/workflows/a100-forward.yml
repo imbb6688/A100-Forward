@@ -119,9 +119,9 @@ jobs:
           fi
       - name: Build research-only Yin-Yang market fingerprint
         run: |
-          if python -m scripts.iros_yinyang_fingerprint \\
-            --daily /mnt/data/A100_2020_2026_raw.parquet \\
-            --output /mnt/data/state/iros-regime/yinyang/latest.json \\
+          if python -m scripts.iros_yinyang_fingerprint \
+            --daily /mnt/data/A100_2020_2026_raw.parquet \
+            --output /mnt/data/state/iros-regime/yinyang/latest.json \
             --history /mnt/data/state/iros-regime/yinyang/history.csv; then
             touch /mnt/data/yinyang_publish_ready
           else
