@@ -36,6 +36,8 @@ jobs:
           test -s /mnt/data/regime_v1/focus_2026_0519_0918.csv
           echo "=== ABLATION_MATRIX ==="
           cat /mnt/data/regime_v1/ablation_matrix.csv
+          echo "=== RISK_PATH_MATRIX ==="
+          cat /mnt/data/regime_v1/risk_path_matrix.csv
           echo "=== FOCUS_SUMMARY ==="
           python - <<'PY'
           import pandas as pd
