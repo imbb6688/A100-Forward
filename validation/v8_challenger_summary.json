@@ -1,0 +1,39 @@
+{
+  "schema_version": "A100-V8-CHALLENGER-SUMMARY-v1",
+  "source_run_id": 35358428106,
+  "source_commit": "3b0c854dd2975ec28c941146aca24f4391023139",
+  "data_fingerprint": "b056f3860a791c37fad93e9f9d79aecdf1cc317acfb4403760c638b2a9afeebc",
+  "frozen_v7_reproduction_passed": true,
+  "decision": "ADVANCE_V8_COMPOSITE_GATE_TO_PIT_PORTFOLIO_REPLAY_ONLY",
+  "production_promotion": false,
+  "variants": {
+    "FROZEN_V7": {
+      "proxy_acceptance_pre_2026": false,
+      "folds": {
+        "2023": {"trades": 32, "net_return": -0.0130068201, "profit_factor": 0.8235451437},
+        "2024": {"trades": 38, "net_return": -0.0538613694, "profit_factor": 0.4344010151},
+        "2025": {"trades": 148, "net_return": 0.2296910341, "profit_factor": 1.9516827413},
+        "2026_diagnostic_only": {"trades": 43, "net_return": 0.0051803447, "profit_factor": 1.0653708687, "last_signal_date": "2026-05-19"}
+      }
+    },
+    "V8_COMPOSITE_GATE": {
+      "proxy_acceptance_pre_2026": true,
+      "folds": {
+        "2023": {"trades": 74, "net_return": 0.0327516880, "profit_factor": 1.3136720688},
+        "2024": {"trades": 94, "net_return": 0.0226590087, "profit_factor": 1.1391507261},
+        "2025": {"trades": 168, "net_return": 0.2392650712, "profit_factor": 1.8625403760},
+        "2026_diagnostic_only": {"trades": 73, "net_return": -0.0095943066, "profit_factor": 0.9409524133, "last_signal_date": "2026-09-09"}
+      }
+    },
+    "V8_ADAPTIVE_STATE": {
+      "proxy_acceptance_pre_2026": false,
+      "decision": "REJECTED",
+      "reason": "Failed 2023, 2024, and 2026 robustness; do not promote or tune on 2026."
+    }
+  },
+  "limitations": [
+    "Ranking proxy only; not graduation evidence.",
+    "2026 is diagnostic-only because the hypothesis followed observation of the May 19 signal.",
+    "Requires PIT ST/industry data, portfolio overlap and cash replay, and forward shadow validation."
+  ]
+}
