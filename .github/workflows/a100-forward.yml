@@ -117,6 +117,17 @@ jobs:
           else
             echo "::warning::Agentic AI regime quality gates failed; previous valid state will remain unpublished."
           fi
+      - name: Build research-only Yin-Yang market fingerprint
+        run: |
+          if python -m scripts.iros_yinyang_fingerprint \\
+            --daily /mnt/data/A100_2020_2026_raw.parquet \\
+            --output /mnt/data/state/iros-regime/yinyang/latest.json \\
+            --history /mnt/data/state/iros-regime/yinyang/history.csv; then
+            touch /mnt/data/yinyang_publish_ready
+          else
+            echo "::warning::Yin-Yang research fingerprint failed; Frozen V7 remains unaffected."
+          fi
+
       - name: Update Forward Account V1
         run: |
           cd /mnt/data
@@ -197,6 +208,11 @@ jobs:
           if [ -s /mnt/data/state/iros-regime/latest.json ]; then
             mkdir -p site/research/agentic-ai-regime
             cp /mnt/data/state/iros-regime/latest.json site/research/agentic-ai-regime/latest.json
+          fi
+          if [ -f /mnt/data/yinyang_publish_ready ] && [ -s /mnt/data/state/iros-regime/yinyang/latest.json ]; then
+            mkdir -p site/research/yinyang
+            cp /mnt/data/state/iros-regime/yinyang/latest.json site/research/yinyang/latest.json
+            cp /mnt/data/state/iros-regime/yinyang/history.csv site/research/yinyang/history.csv
           fi
 
       - name: Configure Pages
