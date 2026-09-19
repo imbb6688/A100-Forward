@@ -1,0 +1,24 @@
+name: A100 Regime Research CI
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'a100_iros/regime_research.py'
+      - 'scripts/a100_regime_research.py'
+      - 'tests/test_regime_research.py'
+      - 'docs/REGIME_RAIL_GS_RESEARCH_V1.md'
+      - '.github/workflows/regime-research-ci.yml'
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - run: python -m unittest tests.test_regime_research -v
+      - run: python -m compileall -q a100_iros scripts/a100_regime_research.py

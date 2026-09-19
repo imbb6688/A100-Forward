@@ -1,0 +1,64 @@
+name: A100 Regime Historical Validation
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/regime-historical-validation.yml'
+      - 'a100_iros/regime_research.py'
+      - 'scripts/a100_regime_research.py'
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Prepare A100 runtime
+        run: |
+          sudo mkdir -p /mnt/data
+          sudo chown -R "$USER:$USER" /mnt/data
+      - name: Download full-market HiThink history
+        env:
+          HITHINK_FINANCE_API_KEY: ${{ secrets.HITHINK_FINANCE_API_KEY }}
+        run: python scripts/download_hithink.py
+      - name: Run research-only historical validation
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+        run: |
+          python scripts/a100_regime_research.py --input /mnt/data/A100_2020_2026_raw.parquet --out /mnt/data/regime_v1
+          test -s /mnt/data/regime_v1/state_forward_returns.csv
+          test -s /mnt/data/regime_v1/focus_2026_0519_0918.csv
+          echo "=== ABLATION_MATRIX ==="
+          cat /mnt/data/regime_v1/ablation_matrix.csv
+          echo "=== TRANSITION_ROBUSTNESS ==="
+          cat /mnt/data/regime_v1/transition_robustness.csv
+          echo "=== TRANSITION_MATRIX ==="
+          python - <<'PY'
+          import pandas as pd
+          p="/mnt/data/regime_v1/transition_matrix.csv"
+          x=pd.read_csv(p)
+          core=x[x.rail_transition.isin(["BEAR->BOTTOMING","BOTTOMING->RECOVERY","RECOVERY->BULL","BULL->EXTENDED"])]
+          print(core.sort_values(["rail_transition","market_regime","gs_entry"]).to_csv(index=False))
+          PY
+          echo "=== RISK_PATH_MATRIX ==="
+          cat /mnt/data/regime_v1/risk_path_matrix.csv
+          echo "=== FOCUS_SUMMARY ==="
+          python - <<'PY'
+          import pandas as pd
+          p="/mnt/data/regime_v1/focus_2026_0519_0918.csv"
+          x=pd.read_csv(p)
+          print(x.to_csv(index=False))
+          print("FOCUS_AGG")
+          print(x[["market_score","bull","early"]].describe().to_csv())
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: a100-regime-v1-historical-evidence
+          path: /mnt/data/regime_v1/*
+          retention-days: 90
