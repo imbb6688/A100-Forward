@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from a100_iros.yinyang_fingerprint import build_history, latest_snapshot
+from a100_iros.yinyang_fingerprint import build_history, snapshot_from_history
 
 
 def main() -> int:
@@ -18,7 +18,7 @@ def main() -> int:
 
     df = pd.read_parquet(args.daily)
     hist = build_history(df)
-    snap = latest_snapshot(df)
+    snap = snapshot_from_history(hist)
 
     out = Path(args.output)
     out.parent.mkdir(parents=True, exist_ok=True)
