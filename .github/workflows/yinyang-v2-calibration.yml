@@ -1,16 +1,6 @@
-name: A100 Yin-Yang V2 Calibration
+name: A100 Yin-Yang V2 Calibration (Maintenance)
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'a100_iros/yinyang_v2.py'
-      - 'scripts/iros_yinyang_v2.py'
-      - 'scripts/validate_yinyang_v2_alignment.py'
-      - 'tests/test_iros_yinyang_v2.py'
-      - 'validation/yinyang_vendor_labels_20260825_20260918.json'
-      - '.github/workflows/yinyang-v2-calibration.yml'
   workflow_dispatch:
 
 permissions:
