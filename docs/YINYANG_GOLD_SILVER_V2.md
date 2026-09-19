@@ -48,3 +48,51 @@ Do not promote v2 to Frozen V7 or production gating until:
 Backtest -> Walk Forward -> Shadow/Paper -> explicit acceptance.
 
 The first calibration sample contains only 19 sessions and must not be used as a standalone training set. It is a falsification/constraint set. Additional labeled historical screenshots should be added before supervised calibration.
+
+
+## Current calibration evidence
+
+Calibration sample: 2026-08-25 through 2026-09-18, 19 labeled sessions.
+
+Current alignment evidence:
+
+- Signal-state matches: 19/19 in the calibration sample.
+- Yang correlation versus labeled vendor Yang values: approximately 0.853.
+- Yang mean absolute error: approximately 9.51 percentage points.
+- Position mean absolute error: approximately 0.74 tenths.
+- Exact position match rate: approximately 42.1%.
+
+These metrics are **calibration-set evidence only**. They must not be interpreted as out-of-sample accuracy.
+
+## Full-history event-direction evidence
+
+Research history: 2020-01-03 through 2026-09-18, 1,628 sessions.
+
+Current candidate-event counts after v2 cooldown semantics:
+
+- GOLD: 195 events.
+- SILVER: 43 events.
+- BOUNCE: 48 events.
+
+Equal-weight market forward-return averages:
+
+| Event | 3d | 5d | 10d | 20d |
+| --- | ---: | ---: | ---: | ---: |
+| GOLD | +0.50% | +0.60% | +1.01% | +1.06% |
+| SILVER | -0.09% | -0.66% | -0.58% | -0.78% |
+| BOUNCE | +0.72% | +0.70% | +0.37% | +1.47% |
+
+This directionality is consistent with the intended event semantics, but it is not sufficient for promotion to a production trading rule.
+
+## Runtime contract
+
+Daily v2 output is fail-soft and research-only:
+
+1. Build v1 market-regime research history from full-market HiThink data.
+2. Build v2 state machine from the same point-in-time history.
+3. Validate date alignment, Yin/Yang arithmetic, position bounds, allowed states/signals, history/latest consistency, and research-only status.
+4. Render a human-readable dashboard.
+5. Publish only when the v2 runtime contract passes.
+6. If v2 fails, Frozen V7 continues unaffected.
+
+Historical backfill and v2 calibration workflows are maintenance-only and must be run manually.
