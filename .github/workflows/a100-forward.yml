@@ -171,6 +171,10 @@ jobs:
             mkdir -p state/iros-regime
             cp -a /mnt/data/state/iros-regime/. state/iros-regime/
           fi
+          if [ -f /mnt/data/yinyang_publish_ready ]; then
+            mkdir -p state/iros-regime/yinyang
+            cp -a /mnt/data/state/iros-regime/yinyang/. state/iros-regime/yinyang/
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add state/account_state.json state/trade_log.csv state/equity_curve.csv state/autonomous_journal.csv
