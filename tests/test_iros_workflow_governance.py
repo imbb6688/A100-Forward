@@ -1,0 +1,44 @@
+import unittest
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+class TestWorkflowGovernance(unittest.TestCase):
+    def test_backfill_is_manual_only(self):
+        text = (ROOT / ".github/workflows/yinyang-backfill.yml").read_text(encoding="utf-8")
+        self.assertIn("workflow_dispatch:", text)
+        self.assertNotIn("\n  push:", text)
+
+    def test_v2_calibration_is_manual_only(self):
+        text = (ROOT / ".github/workflows/yinyang-v2-calibration.yml").read_text(encoding="utf-8")
+        self.assertIn("workflow_dispatch:", text)
+        self.assertNotIn("\n  push:", text)
+
+    def test_daily_does_not_use_broad_research_push_globs(self):
+        text = (ROOT / ".github/workflows/a100-forward.yml").read_text(encoding="utf-8")
+        self.assertNotIn("- 'scripts/**'", text)
+        self.assertNotIn("- 'a100_iros/**'", text)
+        self.assertNotIn("- 'tests/**'", text)
+
+    def test_daily_keeps_yinyang_research_fail_soft(self):
+        text = (ROOT / ".github/workflows/a100-forward.yml").read_text(encoding="utf-8")
+        self.assertIn("Yin-Yang v2 failed; Frozen V7 remains unaffected.", text)
+        self.assertIn("yinyang_v2_publish_ready", text)
+        self.assertIn("validate_yinyang_v2_runtime.py", text)
+
+    def test_agentic_persistence_is_scoped(self):
+        text = (ROOT / ".github/workflows/a100-forward.yml").read_text(encoding="utf-8")
+        self.assertNotIn(
+            "cp -a /mnt/data/state/iros-regime/. state/iros-regime/",
+            text,
+        )
+        self.assertIn(
+            "cp -f /mnt/data/state/iros-regime/latest.json state/iros-regime/latest.json",
+            text,
+        )
+
+
+if __name__ == "__main__":
+    unittest.main()
