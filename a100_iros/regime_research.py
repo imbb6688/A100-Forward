@@ -81,7 +81,7 @@ def market_features(panel: pd.DataFrame) -> pd.DataFrame:
     d["market_regime"]=pd.cut(d.score,[-1,20,40,55,70,85,101],labels=MARKET_LABELS).astype(str)
     return d.reset_index()
 
-def forward_returns(df,horizons=(5,10,20)):
+def forward_returns(df,horizons=(1,3,5,10,20)):
     """Forward close returns plus path-aware MAE/MFE and simple cost/stop research fields."""
     out=df.copy()
     c=out["close"].astype(float); h=out["high"].astype(float); l=out["low"].astype(float)
@@ -133,3 +133,28 @@ def ablation_matrix(z: pd.DataFrame) -> pd.DataFrame:
         rows.append({"model":name,"n":len(q),"mean_5d":q.fwd_5d.mean(),"mean_10d":q.fwd_10d.mean(),
             "mean_20d":q.fwd_20d.mean(),"hit20":(q.fwd_20d>0).mean() if len(q) else np.nan})
     return pd.DataFrame(rows)
+
+
+def rail_transitions(z: pd.DataFrame) -> pd.DataFrame:
+    """Label causal Rail state changes for transition-event studies."""
+    x=z.sort_values(["symbol","date"]).copy()
+    prev=x.groupby("symbol",sort=False)["rail_regime"].shift()
+    x["rail_prev"]=prev
+    x["rail_transition"]=prev.astype("string")+"->"+x["rail_regime"].astype("string")
+    x.loc[prev.isna() | (prev==x["rail_regime"]),"rail_transition"]=pd.NA
+    return x
+
+def transition_matrix(z: pd.DataFrame) -> pd.DataFrame:
+    """Event-study evidence for Market x Rail transition x GS context."""
+    x=rail_transitions(z)
+    event=x.rail_transition.notna() & x.fwd_20d.notna()
+    q=x[event].copy()
+    q["gs_entry"]=q.gs_trigger.isin(["EARLY_ENTRY","TREND_ENTRY","REENTRY"])
+    group=["market_regime","rail_transition","gs_entry"]
+    return q.groupby(group,dropna=False).agg(
+        n=("fwd_20d","size"),
+        mean_1d=("fwd_1d","mean"),mean_3d=("fwd_3d","mean"),mean_5d=("fwd_5d","mean"),
+        mean_10d=("fwd_10d","mean"),mean_20d=("fwd_20d","mean"),
+        hit20=("fwd_20d",lambda s:(s>0).mean()),
+        mae20=("mae_20d","mean"),mfe20=("mfe_20d","mean"),
+        stop_rate=("stop_hit_20d","mean")).reset_index()
