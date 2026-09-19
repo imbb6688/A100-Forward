@@ -158,3 +158,36 @@ def transition_matrix(z: pd.DataFrame) -> pd.DataFrame:
         hit20=("fwd_20d",lambda s:(s>0).mean()),
         mae20=("mae_20d","mean"),mfe20=("mfe_20d","mean"),
         stop_rate=("stop_hit_20d","mean")).reset_index()
+
+
+def transition_robustness(z: pd.DataFrame) -> pd.DataFrame:
+    """Year/OOS robustness for predeclared transition candidates; de-duplicates events."""
+    x=rail_transitions(z).sort_values(["symbol","date"]).copy()
+    x["gs_entry"]=x.gs_trigger.isin(["EARLY_ENTRY","TREND_ENTRY","REENTRY"])
+    candidates={
+      "A_STRONG_BEAR_BOTTOM_GS": (x.market_regime=="STRONG")&(x.rail_transition=="BEAR->BOTTOMING")&x.gs_entry,
+      "B_STRONG_BOTTOM_RECOVERY_GS": (x.market_regime=="STRONG")&(x.rail_transition=="BOTTOMING->RECOVERY")&x.gs_entry,
+      "C_STRONG_RECOVERY_BULL_GS": (x.market_regime=="STRONG")&(x.rail_transition=="RECOVERY->BULL")&x.gs_entry,
+      "RISK_EXTENDED": x.market_regime.isin(["RISK_OFF","DEFENSIVE"])&(x.rail_transition=="BULL->EXTENDED"),
+    }
+    rows=[]
+    for name,mask in candidates.items():
+        q=x[mask & x.fwd_20d.notna()].copy()
+        # one event per symbol per 20 sessions: prevents clustered transition churn dominating evidence
+        q["seq"]=q.groupby("symbol").cumcount()
+        keep=np.ones(len(q),dtype=bool); last={}
+        for j,(_,r) in enumerate(q.iterrows()):
+            s=r.symbol; d=r.date
+            if s in last and (d-last[s]).days < 28: keep[j]=False
+            else: last[s]=d
+        q=q.iloc[np.flatnonzero(keep)].copy()
+        q["year"]=q.date.dt.year
+        for year,g in q.groupby("year"):
+            rows.append({"candidate":name,"slice":str(year),"n":len(g),"mean20":g.fwd_20d.mean(),
+              "net20":g.net_fwd_20d.mean(),"hit20":(g.fwd_20d>0).mean(),"mae20":g.mae_20d.mean(),"mfe20":g.mfe_20d.mean()})
+        # fixed OOS split: 2020-23 development, 2024+ holdout
+        for label,g in [("DEV_2020_2023",q[q.date<"2024-01-01"]),("OOS_2024_PLUS",q[q.date>="2024-01-01"])]:
+            rows.append({"candidate":name,"slice":label,"n":len(g),"mean20":g.fwd_20d.mean(),
+              "net20":g.net_fwd_20d.mean(),"hit20":(g.fwd_20d>0).mean() if len(g) else np.nan,
+              "mae20":g.mae_20d.mean(),"mfe20":g.mfe_20d.mean()})
+    return pd.DataFrame(rows)
