@@ -35,16 +35,20 @@ def stock_features(df: pd.DataFrame) -> pd.DataFrame:
     rail[bull.fillna(False)]="BULL"; rail[extended.fillna(False)]="EXTENDED"
     rail[distribution.fillna(False)]="DISTRIBUTION"
     # GS is deliberately an A100 proxy, not a claim to reproduce proprietary THS GS.
-    cross_up=(fast>mid)&(fast.shift()<=mid.shift())
-    cross_dn=(fast<mid)&(fast.shift()>=mid.shift())
+    # GS trigger is intentionally orthogonal to Rail: momentum/price-volume events only.
+    # This lets ablation measure Rail's independent contribution.
+    mom_fast=_ema(c,5); mom_slow=_ema(c,13)
+    cross_up=(mom_fast>mom_slow)&(mom_fast.shift()<=mom_slow.shift())
+    cross_dn=(mom_fast<mom_slow)&(mom_fast.shift()>=mom_slow.shift())
     vol_ok=v>vol20
     gs=np.full(len(x),"NO_SETUP",object)
-    gs[(bottom&(ret20<0)).fillna(False)]="REVERSAL_WATCH"
-    gs[(cross_up&(c>mid)&vol_ok).fillna(False)]="EARLY_ENTRY"
-    gs[(bull&(c.shift()<=fast.shift())&(c>fast)).fillna(False)]="TREND_ENTRY"
-    gs[(bull&(c>fast)&(c<fast+0.8*atr)&vol_ok).fillna(False)]="REENTRY"
-    gs[extended.fillna(False)]="EXHAUSTION"
-    gs[(cross_dn|((c<mid)&(_slope(mid)<0))).fillna(False)]="EXIT"
+    gs[((ret20<0)&cross_up).fillna(False)]="REVERSAL_WATCH"
+    gs[(cross_up&vol_ok).fillna(False)]="EARLY_ENTRY"
+    gs[((ret20>0)&(c>c.shift())&vol_ok).fillna(False)]="TREND_ENTRY"
+    pullback=(ret20>0)&(c<c.rolling(5,min_periods=5).max())&(c>c.shift())&vol_ok
+    gs[pullback.fillna(False)]="REENTRY"
+    gs[((ret20>0.20)&(v>1.5*vol20)).fillna(False)]="EXHAUSTION"
+    gs[cross_dn.fillna(False)]="EXIT"
     x["rail_fast"]=fast; x["rail_mid"]=mid; x["rail_slow"]=slow
     # Experimental Dual Trend confirmation (independent A100 proxy).
     tf,ts=_ema(c,10),_ema(c,30)
@@ -78,8 +82,19 @@ def market_features(panel: pd.DataFrame) -> pd.DataFrame:
     return d.reset_index()
 
 def forward_returns(df,horizons=(5,10,20)):
+    """Forward close returns plus path-aware MAE/MFE and simple cost/stop research fields."""
     out=df.copy()
-    for h in horizons: out[f"fwd_{h}d"]=out["close"].shift(-h)/out["close"]-1
+    c=out["close"].astype(float); h=out["high"].astype(float); l=out["low"].astype(float)
+    for n in horizons:
+        out[f"fwd_{n}d"]=c.shift(-n)/c-1
+        future_l=pd.concat([l.shift(-k) for k in range(1,n+1)],axis=1).min(axis=1)
+        future_h=pd.concat([h.shift(-k) for k in range(1,n+1)],axis=1).max(axis=1)
+        out[f"mae_{n}d"]=future_l/c-1; out[f"mfe_{n}d"]=future_h/c-1
+    # Conservative round-trip research cost: 20 bps; not a production execution model.
+    out["net_fwd_20d"]=out["fwd_20d"]-0.002
+    risk=1.5*out["atr20"]/c
+    out["atr_stop_pct"]=-risk
+    out["stop_hit_20d"]=out["mae_20d"]<=out["atr_stop_pct"]
     return out
 
 
