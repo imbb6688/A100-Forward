@@ -58,12 +58,15 @@ def build_v2(history: pd.DataFrame) -> pd.DataFrame:
 
     # Head C: transition-event state machine.
     # SILVER = deterioration after a recently strong regime; deliberately not recovery.
-    silver = (
+    silver_raw = (
         (h["score_0_100"] <= 46)
         & (h["breadth_score"] <= 35)
         & (h["score_0_100"].shift(1) < 50)
         & (h["recent_score_max3"] >= 58)
     )
+    # A Finger is an event, not a persistent state. Suppress consecutive
+    # duplicate SILVER prints after the first deterioration transition.
+    silver = silver_raw & ~silver_raw.shift(1, fill_value=False)
 
     # BOUNCE = sharp rebound from an extreme weak state without sufficient
     # trend confirmation to qualify as GOLD.
