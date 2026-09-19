@@ -206,8 +206,10 @@ jobs:
             cp -a /mnt/data/iros_research/. state/iros_research/
           fi
           if [ -f /mnt/data/iros_regime_publish_ready ]; then
-            mkdir -p state/iros-regime
-            cp -a /mnt/data/state/iros-regime/. state/iros-regime/
+            mkdir -p state/iros-regime/inputs
+            cp -f /mnt/data/state/iros-regime/latest.json state/iros-regime/latest.json
+            cp -f /mnt/data/state/iros-regime/history.jsonl state/iros-regime/history.jsonl
+            cp -f /mnt/data/state/iros-regime/inputs/latest.json state/iros-regime/inputs/latest.json
           fi
           if [ -f /mnt/data/yinyang_publish_ready ]; then
             mkdir -p state/iros-regime/yinyang
@@ -251,7 +253,7 @@ jobs:
           cp /mnt/data/forward/graduation_gate.json site/graduation_gate.json
           cp /mnt/data/validation/walk_forward_proxy_report.json site/walk_forward_proxy_report.json
           cp /mnt/data/validation/walk_forward_candidate_universe.csv site/walk_forward_candidate_universe.csv
-          if [ -s /mnt/data/state/iros-regime/latest.json ]; then
+          if [ -f /mnt/data/iros_regime_publish_ready ] && [ -s /mnt/data/state/iros-regime/latest.json ]; then
             mkdir -p site/research/agentic-ai-regime
             cp /mnt/data/state/iros-regime/latest.json site/research/agentic-ai-regime/latest.json
           fi
