@@ -142,6 +142,7 @@ def build_history(df: pd.DataFrame) -> pd.DataFrame:
             "volatility_score": volatility * 100,
             "leadership_score": leadership * 100,
             "capital_score": capital * 100,
+            "ew_return_1d": mean_ret,
             "advancers": adv,
             "decliners": dec,
             "unchanged": flat,
@@ -154,6 +155,7 @@ def build_history(df: pd.DataFrame) -> pd.DataFrame:
     hist = pd.DataFrame(rows)
     if hist.empty:
         return hist
+    hist["ew_index"] = (1.0 + hist["ew_return_1d"].clip(-0.15, 0.15).fillna(0.0)).cumprod() * 1000.0
     hist["score_ma3"] = hist["score_0_100"].rolling(3, min_periods=1).mean()
     hist["breadth_ma3"] = hist["breadth_score"].rolling(3, min_periods=1).mean()
     hist["score_delta3"] = hist["score_0_100"].diff(3)
