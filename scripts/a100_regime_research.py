@@ -2,7 +2,7 @@
 import argparse, json
 from pathlib import Path
 import pandas as pd
-from a100_iros.regime_research import market_features,stock_features,forward_returns,industry_features,ablation_matrix,transition_matrix
+from a100_iros.regime_research import market_features,stock_features,forward_returns,industry_features,ablation_matrix,transition_matrix,transition_robustness
 
 def load(path):
     p=Path(path)
@@ -40,6 +40,7 @@ def main():
         stop_rate=("stop_hit_20d","mean")).reset_index()
     risk.to_csv(out/"risk_path_matrix.csv",index=False)
     transition_matrix(z).to_csv(out/"transition_matrix.csv",index=False)
+    transition_robustness(z).to_csv(out/"transition_robustness.csv",index=False)
     valid=z[z.fwd_20d.notna()]
     summary=valid.groupby(["market_regime","rail_regime","gs_trigger"],dropna=False).agg(
         n=("fwd_20d","size"),mean_5d=("fwd_5d","mean"),mean_20d=("fwd_20d","mean"),
