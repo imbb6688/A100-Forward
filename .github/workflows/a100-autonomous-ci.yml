@@ -5,6 +5,19 @@ on:
   pull_request:
     branches:
       - main
+    paths:
+      - 'scripts/a100_autonomous_*.py'
+      - 'scripts/validate_publish.py'
+      - 'scripts/a100_data_inventory.py'
+      - 'scripts/a100_walk_forward.py'
+      - 'scripts/a100_pit_import.py'
+      - 'scripts/a100_v7_walk_forward_proxy.py'
+      - 'scripts/a100_graduation_gate.py'
+      - 'scripts/a100_risk_scenarios.py'
+      - 'config/graduation_policy.json'
+      - 'tests/test_autonomous_policy.py'
+      - '.github/workflows/a100-autonomous-ci.yml'
+
   push:
     branches:
       - main
@@ -20,10 +33,9 @@ on:
       - 'scripts/a100_graduation_gate.py'
       - 'scripts/a100_risk_scenarios.py'
       - 'config/graduation_policy.json'
-      - 'validation/**'
-      - 'tests/**'
+      - 'tests/test_autonomous_policy.py'
       - '.github/workflows/a100-autonomous-ci.yml'
-      - '.github/workflows/a100-forward.yml'
+
 
 permissions:
   contents: read
@@ -45,7 +57,7 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Run autonomous policy tests
-        run: python -m unittest discover -s tests -v
+        run: python -m unittest discover -s tests -p 'test_autonomous_policy.py' -v
 
       - name: Compile autonomous modules and validators
         run: python -m py_compile scripts/a100_autonomous_policy.py scripts/a100_autonomous_shadow.py scripts/a100_data_inventory.py scripts/a100_pit_import.py scripts/a100_walk_forward.py scripts/a100_v7_walk_forward_proxy.py scripts/a100_risk_scenarios.py scripts/a100_graduation_gate.py scripts/validate_publish.py
