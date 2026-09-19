@@ -22,13 +22,19 @@ def main() -> int:
 
     manifest = load(args.manifest) or {}
     yy = load(args.yinyang_v2) if args.yinyang_v2 else None
+    market_date = str(manifest.get("latest_trade_date") or "")
+    yy_date = str(yy.get("trade_date") or "") if yy else ""
+    yy_aligned = bool(yy and market_date and yy_date == market_date)
+
     payload = {
         "schema_version": "A100-RESEARCH-STATUS-v1",
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
-        "market_date": manifest.get("latest_trade_date"),
+        "market_date": market_date or None,
         "full_market": bool(manifest.get("full_market")),
         "yinyang_v2": {
-            "available": yy is not None,
+            "available": yy_aligned,
+            "date_aligned": yy_aligned,
+            "stale_snapshot_present": bool(yy is not None and not yy_aligned),
             "trade_date": yy.get("trade_date") if yy else None,
             "yang_pct": yy.get("yang_pct") if yy else None,
             "yin_pct": yy.get("yin_pct") if yy else None,
