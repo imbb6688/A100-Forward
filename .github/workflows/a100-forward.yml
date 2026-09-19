@@ -144,11 +144,27 @@ jobs:
           if python -m scripts.iros_yinyang_v2 \
             --history /mnt/data/state/iros-regime/yinyang/history.csv \
             --output /mnt/data/state/iros-regime/yinyang-v2/latest.json \
-            --series /mnt/data/state/iros-regime/yinyang-v2/history.csv; then
+            --series /mnt/data/state/iros-regime/yinyang-v2/history.csv \
+            && python scripts/validate_yinyang_v2_runtime.py \
+              --manifest /mnt/data/hithink_manifest.json \
+              --latest /mnt/data/state/iros-regime/yinyang-v2/latest.json \
+              --history /mnt/data/state/iros-regime/yinyang-v2/history.csv \
+            && python scripts/render_yinyang_v2.py \
+              --latest /mnt/data/state/iros-regime/yinyang-v2/latest.json \
+              --history /mnt/data/state/iros-regime/yinyang-v2/history.csv \
+              --output /mnt/data/state/iros-regime/yinyang-v2/index.html; then
             touch /mnt/data/yinyang_v2_publish_ready
           else
-            echo "::warning::Yin-Yang v2 failed; Frozen V7 remains unaffected."
+            rm -f /mnt/data/yinyang_v2_publish_ready
+            echo "::warning::Yin-Yang v2 build/validation failed; Frozen V7 remains unaffected."
           fi
+
+      - name: Build sanitized research status
+        run: |
+          python scripts/build_research_status.py \
+            --manifest /mnt/data/hithink_manifest.json \
+            --yinyang-v2 /mnt/data/state/iros-regime/yinyang-v2/latest.json \
+            --output /mnt/data/state/iros-regime/research_status.json
 
       - name: Update Forward Account V1
         run: |
@@ -248,6 +264,11 @@ jobs:
             mkdir -p site/research/yinyang-v2
             cp /mnt/data/state/iros-regime/yinyang-v2/latest.json site/research/yinyang-v2/latest.json
             cp /mnt/data/state/iros-regime/yinyang-v2/history.csv site/research/yinyang-v2/history.csv
+            cp /mnt/data/state/iros-regime/yinyang-v2/index.html site/research/yinyang-v2/index.html
+          fi
+          if [ -s /mnt/data/state/iros-regime/research_status.json ]; then
+            mkdir -p site/research
+            cp /mnt/data/state/iros-regime/research_status.json site/research/status.json
           fi
 
       - name: Configure Pages
