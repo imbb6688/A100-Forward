@@ -1,0 +1,26 @@
+{
+  "schema_version": "A100-YINYANG-VENDOR-LABELS-v1",
+  "source": "user-provided screenshot of Tonghuashun actual indicator",
+  "scope": "research calibration only; proprietary formula unknown",
+  "labels": [
+    {"date":"2026-08-25","yang_pct":51,"position_tenths":5,"signal":"GOLD"},
+    {"date":"2026-08-26","yang_pct":64,"position_tenths":5,"signal":null},
+    {"date":"2026-08-27","yang_pct":77,"position_tenths":7,"signal":null},
+    {"date":"2026-08-28","yang_pct":79,"position_tenths":6,"signal":null},
+    {"date":"2026-08-31","yang_pct":75,"position_tenths":8,"signal":null},
+    {"date":"2026-09-01","yang_pct":72,"position_tenths":6,"signal":null},
+    {"date":"2026-09-02","yang_pct":53,"position_tenths":6,"signal":null},
+    {"date":"2026-09-03","yang_pct":30,"position_tenths":2,"signal":"SILVER"},
+    {"date":"2026-09-04","yang_pct":26,"position_tenths":2,"signal":null},
+    {"date":"2026-09-07","yang_pct":35,"position_tenths":2,"signal":null},
+    {"date":"2026-09-08","yang_pct":56,"position_tenths":7,"signal":"GOLD"},
+    {"date":"2026-09-09","yang_pct":56,"position_tenths":5,"signal":null},
+    {"date":"2026-09-10","yang_pct":32,"position_tenths":2,"signal":"SILVER"},
+    {"date":"2026-09-11","yang_pct":12,"position_tenths":2,"signal":null},
+    {"date":"2026-09-14","yang_pct":13,"position_tenths":3,"signal":null},
+    {"date":"2026-09-15","yang_pct":15,"position_tenths":2,"signal":null},
+    {"date":"2026-09-16","yang_pct":28,"position_tenths":3,"signal":"BOUNCE"},
+    {"date":"2026-09-17","yang_pct":45,"position_tenths":2,"signal":null},
+    {"date":"2026-09-18","yang_pct":67,"position_tenths":8,"signal":"GOLD"}
+  ]
+}
