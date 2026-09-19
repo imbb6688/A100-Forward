@@ -19,6 +19,35 @@ See:
 - `scripts/a100_graduation_gate.py` — fail-closed graduation evaluator; it never enables live or broker orders.
 - `docs/PIT_AND_WALK_FORWARD_EVIDENCE.md` — verified upstream PIT boundary, canonical import contract and annual Frozen V7 proxy evidence.
 
+
+## Yin-Yang Spectrum / Gold-Silver Finger v2
+
+A100 now includes a **research-only** market-state transition model inspired by the behavioral structure of Yin-Yang Spectrum / Gold Finger / Silver Finger displays.
+
+The v2 model keeps three outputs separate:
+
+- **Yang Spectrum** — continuous 0..100 market breadth/sentiment estimate.
+- **Position** — ordinal 0..10 research exposure state with hysteresis.
+- **Signal state machine** — `GOLD`, `SILVER`, `BOUNCE`, or `NONE`.
+
+The first user-provided Tonghuashun calibration sample covers 19 sessions from 2026-08-25 through 2026-09-18. The current v2 signal state machine matches all 19 labeled signal states in that calibration set, but this is **in-sample calibration evidence, not proof of the proprietary vendor formula and not production validation**.
+
+Full-history research evidence (2020-01-03 through 2026-09-18) is stored under:
+
+- `state/iros-regime/yinyang-v2/latest.json`
+- `state/iros-regime/yinyang-v2/history.csv`
+- `state/iros-regime/yinyang-v2/vendor_alignment.json`
+- `state/iros-regime/yinyang-v2/event_validation.json`
+
+When the daily research path succeeds, GitHub Pages also publishes:
+
+- `research/yinyang-v2/` — human-readable v2 dashboard.
+- `research/yinyang-v2/latest.json`
+- `research/yinyang-v2/history.csv`
+- `research/status.json` — sanitized research availability/status.
+
+The v1 Gold/Silver semantics are deprecated; v1 remains only a generic market-regime research baseline. Yin-Yang v2 does not modify Frozen V7 or broker execution.
+
 ## What it does
 
 1. Authenticates to HiThink Financial-API with the repository secret `HITHINK_FINANCE_API_KEY`.
