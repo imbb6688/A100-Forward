@@ -27,6 +27,7 @@ class TestYinYangV2(unittest.TestCase):
         self.assertEqual(v2.loc[pd.Timestamp("2026-09-03"), "v2_signal"], "SILVER")
         self.assertEqual(v2.loc[pd.Timestamp("2026-09-08"), "v2_signal"], "GOLD")
         self.assertEqual(v2.loc[pd.Timestamp("2026-09-10"), "v2_signal"], "SILVER")
+        self.assertEqual(v2.loc[pd.Timestamp("2026-09-11"), "v2_signal"], "NONE")
         self.assertEqual(v2.loc[pd.Timestamp("2026-09-16"), "v2_signal"], "BOUNCE")
         self.assertEqual(v2.loc[pd.Timestamp("2026-09-18"), "v2_signal"], "GOLD")
 
