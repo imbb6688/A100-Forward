@@ -176,8 +176,7 @@ def build_history(df: pd.DataFrame) -> pd.DataFrame:
     return hist
 
 
-def latest_snapshot(df: pd.DataFrame) -> FingerprintSnapshot:
-    hist = build_history(df)
+def snapshot_from_history(hist: pd.DataFrame) -> FingerprintSnapshot:
     if hist.empty:
         raise ValueError("no valid market observations")
     r = hist.iloc[-1]
@@ -207,3 +206,7 @@ def latest_snapshot(df: pd.DataFrame) -> FingerprintSnapshot:
         limit_down_like=int(r["limit_down_like"]),
         coverage=float(r["coverage"]),
     )
+
+
+def latest_snapshot(df: pd.DataFrame) -> FingerprintSnapshot:
+    return snapshot_from_history(build_history(df))
