@@ -3,6 +3,7 @@ name: A100 Forward Daily
 on:
   workflow_dispatch:
   schedule:
+    # 16:10 Asia/Shanghai (08:10 UTC), Monday-Friday.
     - cron: '10 8 * * 1-5'
   push:
     branches:
