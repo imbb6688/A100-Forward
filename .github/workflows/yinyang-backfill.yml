@@ -1,0 +1,72 @@
+name: A100 Yin-Yang Backfill
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/yinyang-backfill.yml'
+      - 'a100_iros/yinyang_fingerprint.py'
+      - 'scripts/iros_yinyang_fingerprint.py'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: a100-yinyang-backfill
+  cancel-in-progress: true
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Prepare runtime
+        run: |
+          sudo mkdir -p /mnt/data/state/iros-regime/yinyang
+          sudo chown -R $USER:$USER /mnt/data
+
+      - name: Download validated HiThink full-market data
+        env:
+          HITHINK_FINANCE_API_KEY: ${{ secrets.HITHINK_FINANCE_API_KEY }}
+        run: |
+          python scripts/download_hithink.py
+          test -s /mnt/data/A100_2020_2026_raw.parquet
+          test -s /mnt/data/hithink_manifest.json
+
+      - name: Build Yin-Yang history
+        run: |
+          python -m scripts.iros_yinyang_fingerprint \
+            --daily /mnt/data/A100_2020_2026_raw.parquet \
+            --output /mnt/data/state/iros-regime/yinyang/latest.json \
+            --history /mnt/data/state/iros-regime/yinyang/history.csv
+          test -s /mnt/data/state/iros-regime/yinyang/latest.json
+          test -s /mnt/data/state/iros-regime/yinyang/history.csv
+
+      - name: Persist research results
+        run: |
+          mkdir -p state/iros-regime/yinyang
+          cp -f /mnt/data/state/iros-regime/yinyang/latest.json state/iros-regime/yinyang/latest.json
+          cp -f /mnt/data/state/iros-regime/yinyang/history.csv state/iros-regime/yinyang/history.csv
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add state/iros-regime/yinyang/latest.json state/iros-regime/yinyang/history.csv
+          if git diff --cached --quiet; then
+            echo "No Yin-Yang state changes."
+          else
+            git commit -m "chore: backfill Yin-Yang market history [skip ci]"
+            git push origin HEAD:main
+          fi
