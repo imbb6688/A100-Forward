@@ -85,7 +85,7 @@ GitHub repository → **Settings → Pages → Build and deployment → Source: 
 ### 5. Run once manually
 GitHub repository → **Actions → A100 Forward Daily → Run workflow**.
 
-The scheduled run is configured for **15:35 Asia/Shanghai, Monday–Friday**. This gives HiThink time to publish the daily dump and leaves ~10 minutes before the ChatGPT 15:45 A100 task.
+The scheduled run is configured for **16:10 Asia/Shanghai (08:10 UTC), Monday–Friday**. This is the current production schedule encoded in `.github/workflows/a100-forward.yml`.
 
 ## Expected public URLs
 If the repository is `https://github.com/USERNAME/a100-forward`, Pages is normally:
