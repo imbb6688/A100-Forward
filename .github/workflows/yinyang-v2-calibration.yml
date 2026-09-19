@@ -55,6 +55,13 @@ jobs:
             --labels validation/yinyang_vendor_labels_20260825_20260918.json \
             --output state/iros-regime/yinyang-v2/vendor_alignment.json
 
+      - name: Validate v2 events on full history
+        run: |
+          python scripts/validate_yinyang_v2_events.py \
+            --v1-history state/iros-regime/yinyang/history.csv \
+            --v2-history state/iros-regime/yinyang-v2/history.csv \
+            --output state/iros-regime/yinyang-v2/event_validation.json
+
       - name: Persist v2 calibration evidence
         run: |
           git config user.name "github-actions[bot]"
