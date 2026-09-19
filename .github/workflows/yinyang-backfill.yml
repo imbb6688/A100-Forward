@@ -56,14 +56,24 @@ jobs:
           test -s /mnt/data/state/iros-regime/yinyang/latest.json
           test -s /mnt/data/state/iros-regime/yinyang/history.csv
 
+      - name: Validate Yin-Yang event behavior
+        run: |
+          python scripts/validate_yinyang_fingerprint.py \
+            --history /mnt/data/state/iros-regime/yinyang/history.csv \
+            --output /mnt/data/state/iros-regime/yinyang/validation.json \
+            --window-start 2026-05-19 \
+            --window-end 2026-09-18
+          test -s /mnt/data/state/iros-regime/yinyang/validation.json
+
       - name: Persist research results
         run: |
           mkdir -p state/iros-regime/yinyang
           cp -f /mnt/data/state/iros-regime/yinyang/latest.json state/iros-regime/yinyang/latest.json
           cp -f /mnt/data/state/iros-regime/yinyang/history.csv state/iros-regime/yinyang/history.csv
+          cp -f /mnt/data/state/iros-regime/yinyang/validation.json state/iros-regime/yinyang/validation.json
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add state/iros-regime/yinyang/latest.json state/iros-regime/yinyang/history.csv
+          git add state/iros-regime/yinyang/latest.json state/iros-regime/yinyang/history.csv state/iros-regime/yinyang/validation.json
           if git diff --cached --quiet; then
             echo "No Yin-Yang state changes."
           else
