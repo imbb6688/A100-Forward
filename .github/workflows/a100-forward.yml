@@ -8,10 +8,21 @@ on:
     branches:
       - main
     paths:
-      - 'scripts/**'
-      - 'a100_iros/**'
-      - 'config/**'
-      - 'tests/**'
+      - 'scripts/download_hithink.py'
+      - 'scripts/a100_io.py'
+      - 'scripts/a100_canonical_prep.py'
+      - 'scripts/a100_v5_pit_proxy.py'
+      - 'scripts/a100_v6_feature_prep_forward.py'
+      - 'scripts/a100_v6_train_score_forward.py'
+      - 'scripts/a100_v7_forward_ranker.py'
+      - 'scripts/a100_forward_live.py'
+      - 'scripts/a100_account_v1.py'
+      - 'scripts/a100_autonomous_shadow.py'
+      - 'scripts/preflight.py'
+      - 'scripts/validate_publish.py'
+      - 'scripts/a100_data_inventory.py'
+      - 'scripts/a100_risk_scenarios.py'
+      - 'scripts/a100_graduation_gate.py'
       - 'requirements.txt'
       - '.github/workflows/a100-forward.yml'
 
