@@ -36,6 +36,14 @@ jobs:
           test -s /mnt/data/regime_v1/focus_2026_0519_0918.csv
           echo "=== ABLATION_MATRIX ==="
           cat /mnt/data/regime_v1/ablation_matrix.csv
+          echo "=== TRANSITION_MATRIX ==="
+          python - <<'PY'
+          import pandas as pd
+          p="/mnt/data/regime_v1/transition_matrix.csv"
+          x=pd.read_csv(p)
+          core=x[x.rail_transition.isin(["BEAR->BOTTOMING","BOTTOMING->RECOVERY","RECOVERY->BULL","BULL->EXTENDED"])]
+          print(core.sort_values(["rail_transition","market_regime","gs_entry"]).to_csv(index=False))
+          PY
           echo "=== RISK_PATH_MATRIX ==="
           cat /mnt/data/regime_v1/risk_path_matrix.csv
           echo "=== FOCUS_SUMMARY ==="
